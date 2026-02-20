@@ -7,25 +7,46 @@ const services = [
     { id: 4, name: "Express Setrika", price: 7000, unit: "kg" }
 ];
 
+// --- KONFIGURASI SUPABASE ---
+const SUPABASE_URL = 'https://qgezrmiuwkmwfglblqet.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_HX9kjtBshfYgo12UpKJBlg_TqNPE5Vc';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // --- STATE MANAGEMENT ---
 let state = {
     selectedServiceIds: [], 
     quantities: {}, 
     total: 0
 };
-
-// Array untuk menyimpan seluruh data pesanan
 let allOrders = [];
-
-// Variabel untuk melacak pesanan mana yang sedang dibuka rinciannya
 let currentOrderId = null;
 
-// --- FUNGSI NAVIGASI HEADER ---
+// --- FUNGSI FETCH DATA DARI SUPABASE ---
+async function fetchOrders() {
+    const { data, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .order('id', { ascending: false });
+    
+    if (error) {
+        console.error("Error fetching orders:", error);
+        return;
+    }
+    allOrders = data || [];
+    
+    // Update UI jika sedang berada di halaman yang relevan
+    if (!document.getElementById('view-orders').classList.contains('hidden')) {
+        renderOrderList();
+    }
+    if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
+        renderKreditList();
+    }
+}
 
+// --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
     const btn = document.getElementById('menu-btn');
-    
     if (menu && btn) {
         menu.classList.toggle('hidden');
         if (!menu.classList.contains('hidden')) {
@@ -38,18 +59,13 @@ function toggleMenu() {
 }
 
 function navTo(page) {
-    if (page === 'home') {
-        backToHome();
-    } else if (page === 'orders') {
-        switchToOrders();
-    } else if (page === 'kredit') { 
-        switchToKredit();
-    }
+    if (page === 'home') { backToHome(); } 
+    else if (page === 'orders') { switchToOrders(); renderOrderList(); } 
+    else if (page === 'kredit') { switchToKredit(); }
     toggleMenu(); 
 }
 
 // --- FUNGSI UTAMA ---
-
 function initApp() {
     services.forEach(srv => {
         const input = document.getElementById(`input-${srv.id}`);
@@ -57,6 +73,7 @@ function initApp() {
         state.quantities[srv.id] = 1;
     });
     hitungTotal();
+    fetchOrders(); // Load data dari database saat aplikasi dibuka
 }
 
 function toggleService(index) {
@@ -70,13 +87,11 @@ function toggleService(index) {
     } else {
         state.selectedServiceIds.push(index);
         if (inputArea) inputArea.classList.remove('hidden');
-        
         if (!state.quantities[index] || state.quantities[index] === 0) {
             state.quantities[index] = 1;
             if (inputField) inputField.value = 1;
         }
     }
-    
     updateServiceUI();
     hitungTotal();
 }
@@ -85,9 +100,7 @@ function updateServiceUI() {
     services.forEach((srv, idx) => {
         const card = document.getElementById(`srv-${idx}`);
         const checkIcon = card?.querySelector('.check-icon');
-        
         if (!card) return;
-
         if (state.selectedServiceIds.includes(idx)) {
             card.classList.remove('border-white', 'shadow-sm');
             card.classList.add('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
@@ -122,7 +135,6 @@ function hitungTotal() {
             state.total += (qty * service.price);
         }
     });
-
     state.total = Math.ceil(state.total);
     const totalEl = document.getElementById('txtTotal');
     if(totalEl) totalEl.innerText = formatRupiah(state.total);
@@ -132,7 +144,8 @@ function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
 
-function prosesPesanan() {
+// --- UPDATE: SIMPAN KE SUPABASE ---
+async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
     const wa = document.getElementById('custWa').value.trim();
     
@@ -141,19 +154,23 @@ function prosesPesanan() {
         alert("Nama Pelanggan wajib diisi!");
         return;
     }
-
     if (state.selectedServiceIds.length === 0) {
         alert("Pilih minimal satu layanan!");
         return;
     }
     
-    const orderData = {
-        id: Date.now(),
+    // Loading UI
+    const btnSimpan = document.querySelector('#footer-total button');
+    const originalText = btnSimpan.innerHTML;
+    btnSimpan.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i><span>MENYIMPAN...</span>';
+    btnSimpan.disabled = true;
+
+    const newOrder = {
         customer: nama,
         whatsapp: wa,
         date: new Date().toLocaleString('id-ID'),
         payment: 'cash',
-        status: 'proses', 
+        status: 'baru', 
         items: state.selectedServiceIds.map(id => {
             const srv = services.find(s => s.id === id);
             return { name: srv.name, qty: state.quantities[id], unit: srv.unit, price: srv.price };
@@ -161,8 +178,19 @@ function prosesPesanan() {
         total: state.total
     };
 
-    allOrders.unshift(orderData);
-    renderOrderList();
+    // Insert to Supabase (id is auto-generated by the DB)
+    const { data, error } = await supabaseClient.from('orders').insert([newOrder]);
+
+    btnSimpan.innerHTML = originalText;
+    btnSimpan.disabled = false;
+
+    if (error) {
+        alert("Gagal menyimpan pesanan. Cek koneksi internet.");
+        console.error("Insert error:", error);
+        return;
+    }
+
+    await fetchOrders(); // Reload data
     switchToOrders();
     resetForm();
 }
@@ -195,14 +223,11 @@ function switchToKredit() {
     document.getElementById('view-kredit').classList.remove('hidden');
     const footer = document.getElementById('footer-total');
     if(footer) footer.classList.add('translate-y-full', 'opacity-0');
-    
     renderKreditList(); 
 }
-// --- LOGIKA RENDER LIST DAN DETAIL PAGE ---
 
 function renderOrderList() {
     const container = document.getElementById('order-list');
-    
     if (allOrders.length === 0) {
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center py-10 opacity-40">
@@ -212,17 +237,14 @@ function renderOrderList() {
         `;
         return;
     }
-
     container.innerHTML = allOrders.map((order, index) => {
-        let summaryService = order.items[0].name;
-        if (order.items.length > 1) {
+        let summaryService = order.items && order.items.length > 0 ? order.items[0].name : 'Layanan';
+        if (order.items && order.items.length > 1) {
             summaryService += ` (+${order.items.length - 1})`;
         }
-
         let paymentDot = order.payment === 'kredit' 
             ? '<span class="w-2 h-2 rounded-full bg-red-400 absolute top-2 right-2 shadow-sm"></span>' 
             : '';
-
         let statusColor = "bg-yellow-50 text-yellow-600 border-yellow-100";
         let statusText = "PROSES";
         
@@ -239,7 +261,6 @@ function renderOrderList() {
             statusText = "BARU";
         }
 
-        // UPDATE: Penambahan min-w-0 dan text-left pada div flex-col pembungkus nama & status
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-brand-100 mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${order.id})">
             ${paymentDot}
@@ -263,10 +284,8 @@ function renderOrderList() {
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id === id);
     if (!order) return;
-
     currentOrderId = id;
 
-    // 1. Populate Data ke Dashboard Rincian (Detail View - Admin)
     const detailName = document.getElementById('detail-name');
     const detailWa = document.getElementById('detail-wa');
     const detailDate = document.getElementById('detail-date');
@@ -278,7 +297,7 @@ function openOrderDetail(id) {
     if(detailDate) detailDate.innerText = order.date;
     if(detailTotal) detailTotal.innerText = formatRupiah(order.total);
 
-    if(detailItems) {
+    if(detailItems && order.items) {
         detailItems.innerHTML = order.items.map(item => `
             <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
                 <div class="flex flex-col">
@@ -290,7 +309,6 @@ function openOrderDetail(id) {
         `).join('');
     }
 
-    // 2. Populate Data ke E-Ticket Modal (Print View - Customer)
     const ticketName = document.getElementById('ticket-name');
     const ticketWa = document.getElementById('ticket-wa');
     const ticketDate = document.getElementById('ticket-date');
@@ -302,7 +320,7 @@ function openOrderDetail(id) {
     if(ticketDate) ticketDate.innerText = order.date;
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
-    if(ticketItems) {
+    if(ticketItems && order.items) {
         ticketItems.innerHTML = order.items.map(item => `
             <div class="flex justify-between items-center text-xs text-gray-600 border-b border-gray-100 last:border-0 py-2">
                 <div class="flex flex-col">
@@ -317,72 +335,76 @@ function openOrderDetail(id) {
     refreshPaymentUI(order.payment);
     refreshStatusUI(order.status || 'proses'); 
 
-    // Switch View
     document.getElementById('view-orders').classList.add('hidden');
     document.getElementById('view-kredit')?.classList.add('hidden'); 
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
 
-function updatePayment(method) {
+// --- UPDATE: UBAH PAYMENT DI SUPABASE ---
+async function updatePayment(method) {
     if (!currentOrderId) return;
-    
     const orderIndex = allOrders.findIndex(o => o.id === currentOrderId);
     if (orderIndex > -1) {
         if (allOrders[orderIndex].status === 'proses') {
             alert("Selesaikan pesanan terlebih dahulu untuk mengubah status pembayaran.");
             return;
         }
-
+        
+        // Optimistic UI update
         allOrders[orderIndex].payment = method;
         refreshPaymentUI(method);
         renderOrderList();
+        
+        // Update DB
+        const { error } = await supabaseClient.from('orders').update({ payment: method }).eq('id', currentOrderId);
+        if (error) console.error("Error updating payment:", error);
     }
 }
 
 function refreshPaymentUI(paymentStatus) {
     const badgeDetail = document.getElementById('payment-badge');
     const badgeTicket = document.getElementById('ticket-payment-badge');
-    
     const btnCash = document.getElementById('btn-pay-cash');
     const btnKredit = document.getElementById('btn-pay-kredit');
 
     if (!btnCash || !btnKredit) return;
-
     const currentOrder = allOrders.find(o => o.id === currentOrderId);
     const isProses = currentOrder ? currentOrder.status === 'proses' : false;
     
     let baseBtnClassActive = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs transition-all shadow-md ";
     let baseBtnClassInactive = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-400 font-bold text-xs transition-all ";
-    
     let disabledStateClass = isProses ? "opacity-50 cursor-not-allowed pointer-events-none " : "active:scale-95 ";
 
     if (paymentStatus === 'cash') {
         const classLunas = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "CASH"; badgeDetail.className = classLunas; }
         if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = classLunas; }
-        
         btnCash.className = baseBtnClassActive + disabledStateClass + "border-green-500 bg-green-500 text-white";
         btnKredit.className = baseBtnClassInactive + disabledStateClass;
     } else {
         const classKredit = "text-[10px] bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "KREDIT"; badgeDetail.className = classKredit; }
         if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = classKredit; }
-        
         btnCash.className = baseBtnClassInactive + disabledStateClass;
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
     }
 }
 
-function updateOrderStatus(status) {
+// --- UPDATE: UBAH STATUS DI SUPABASE ---
+async function updateOrderStatus(status) {
     if (!currentOrderId) return;
-    
     const orderIndex = allOrders.findIndex(o => o.id === currentOrderId);
     if (orderIndex > -1) {
+        // Optimistic UI update
         allOrders[orderIndex].status = status;
         refreshStatusUI(status);
         refreshPaymentUI(allOrders[orderIndex].payment);
         renderOrderList(); 
+        
+        // Update DB
+        const { error } = await supabaseClient.from('orders').update({ status: status }).eq('id', currentOrderId);
+        if (error) console.error("Error updating status:", error);
     }
 }
 
@@ -390,7 +412,6 @@ function refreshStatusUI(status) {
     const btnProses = document.getElementById('btn-status-proses');
     const btnSelesai = document.getElementById('btn-status-selesai');
     const ticketBadge = document.getElementById('ticket-status-badge');
-
     if (!btnProses || !btnSelesai) return;
 
     const classInactive = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-400 font-bold text-xs transition-all active:scale-95";
@@ -398,7 +419,6 @@ function refreshStatusUI(status) {
     if (status === 'proses') {
         btnProses.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-yellow-500 bg-yellow-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         btnSelesai.className = classInactive;
-        
         if(ticketBadge) {
             ticketBadge.innerText = "PROSES";
             ticketBadge.className = "text-[10px] bg-yellow-50 text-yellow-600 px-2.5 py-1 rounded-lg border border-yellow-100 font-bold uppercase tracking-wider shadow-sm inline-block";
@@ -406,7 +426,6 @@ function refreshStatusUI(status) {
     } else if (status === 'selesai') {
         btnProses.className = classInactive;
         btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
-        
         if(ticketBadge) {
             ticketBadge.innerText = "SELESAI";
             ticketBadge.className = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
@@ -414,22 +433,18 @@ function refreshStatusUI(status) {
     } else {
         btnProses.className = classInactive;
         btnSelesai.className = classInactive;
-        
         if(ticketBadge) {
             ticketBadge.innerText = "BARU";
             ticketBadge.className = "text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         }
     }
 }
-// --- FUNGSI MODAL E-TICKET ---
+
 function openTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
-    
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    
-    // Trigger animasi smooth show
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         modalContent.classList.remove('scale-95');
@@ -440,50 +455,38 @@ function openTicketModal() {
 function closeTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
-    
     modal.classList.add('opacity-0');
     modalContent.classList.remove('scale-100');
     modalContent.classList.add('scale-95');
-    
-    // Sembunyikan setelah animasi transition selesai
     setTimeout(() => {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     }, 300);
 }
 
-// --- FUNGSI DOWNLOAD E-TICKET ---
 function downloadETicket() {
     const ticketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
-    
     const originalContent = btnDownload.innerHTML;
     btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses...</span>';
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    html2canvas(ticketElement, {
-        scale: 2, 
-        backgroundColor: "#ffffff",
-        useCORS: true 
-    }).then(canvas => {
+    html2canvas(ticketElement, { scale: 2, backgroundColor: "#ffffff", useCORS: true })
+    .then(canvas => {
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
-        
         const image = canvas.toDataURL("image/png", 1.0);
         const link = document.createElement('a');
-        
         const randomId = Math.floor(Math.random() * 10000);
         link.download = `E-Ticket-Ziedan-Laundry-${randomId}.png`;
         link.href = image;
         link.click();
-        
     }).catch(error => {
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
-        
         console.error("Gagal memproses E-Ticket: ", error);
         alert("Terjadi kesalahan saat menyimpan E-Ticket. Pastikan browser mendukung fitur ini.");
     });
@@ -495,11 +498,8 @@ function closeOrderDetail() {
     document.getElementById('view-orders').classList.remove('hidden');
 }
 
-// --- UPDATE: FUNGSI RENDER DATA KREDIT (GROUPING PER NAMA) ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
-    
-    // 1. Ambil hanya pesanan dengan status pembayaran 'kredit'
     const kreditOrders = allOrders.filter(o => o.payment === 'kredit');
 
     if (kreditOrders.length === 0) {
@@ -512,31 +512,18 @@ function renderKreditList() {
         return;
     }
 
-    // 2. Lakukan grouping (pengelompokan) berdasarkan nama pelanggan
     const groupedKredit = {};
-    
     kreditOrders.forEach(order => {
-        // Gunakan uppercase untuk menyamakan nama dengan format kapitalisasi berbeda
         const keyName = order.customer.trim().toUpperCase(); 
-        
         if (!groupedKredit[keyName]) {
-            groupedKredit[keyName] = {
-                displayName: order.customer, // Tampilkan nama aslinya
-                totalAmount: 0,
-                transactionCount: 0
-            };
+            groupedKredit[keyName] = { displayName: order.customer, totalAmount: 0, transactionCount: 0 };
         }
-        
         groupedKredit[keyName].totalAmount += order.total;
         groupedKredit[keyName].transactionCount += 1;
     });
 
-    // 3. Ubah object menjadi array agar bisa di-map
     const groupedArray = Object.values(groupedKredit);
-
-    // 4. Render ke dalam HTML
     container.innerHTML = groupedArray.map((data, index) => {
-        // UPDATE: Penambahan cursor-pointer, fungsi onclick, dan min-w-0 text-left untuk alignment sempurna
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${data.displayName}')">
             <div class="grid grid-cols-[30px_1fr_1fr_1.3fr] gap-2 items-center">
@@ -545,7 +532,7 @@ function renderKreditList() {
                     <span class="text-xs font-bold text-brand-900 truncate w-full">${data.displayName}</span>
                     <span class="text-[8px] font-bold border px-1 py-0.5 rounded mt-0.5 w-max bg-red-50 text-red-600 border-red-100">BELUM LUNAS</span>
                 </div>
-                <span class="text-[11px] text-gray-500 font-bold text-center bg-gray-50 rounded-lg py-1 border border-gray-100">${data.transactionCount} Transaksi</span>
+                <span class="text-[11px] text-gray-500 font-bold text-center bg-gray-50 rounded-lg py-1 border border-gray-100">${data.transactionCount} Trans.</span>
                 <div class="flex items-center justify-end text-right">
                     <span class="text-xs font-extrabold text-red-600">${formatRupiah(data.totalAmount)}</span>
                 </div>
@@ -555,32 +542,21 @@ function renderKreditList() {
     }).join('');
 }
 
-// --- NEW FUNGSI: BUKA RINCIAN DATA KREDIT PER PELANGGAN ---
 function openKreditDetail(customerName) {
-    // 1. Cari semua pesanan milik nama ini yang statusnya 'kredit'
     const targetName = customerName.trim().toUpperCase();
-    const customerOrders = allOrders.filter(o => 
-        o.customer.trim().toUpperCase() === targetName && 
-        o.payment === 'kredit'
-    );
-
+    const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === targetName && o.payment === 'kredit');
     if (customerOrders.length === 0) return;
 
-    // 2. Dapatkan data umum (WhatsApp terbaru jika ada)
     const latestWa = customerOrders[0].whatsapp || '-';
-    
-    // 3. Populate data ke UI View Detail Kredit
-    document.getElementById('kredit-detail-name').innerText = customerOrders[0].customer; // Gunakan kapitalisasi aslinya
+    document.getElementById('kredit-detail-name').innerText = customerOrders[0].customer; 
     document.getElementById('kredit-detail-wa').innerText = latestWa;
 
-    // 4. Susun daftar nota yang dikreditkan dan hitung total pasti
     let itemsHTML = '';
     let totalKreditAll = 0;
 
     customerOrders.forEach(order => {
-        let summaryService = order.items.map(i => i.name).join(', ');
+        let summaryService = order.items && order.items.length > 0 ? order.items.map(i => i.name).join(', ') : 'Layanan';
         totalKreditAll += order.total;
-
         itemsHTML += `
             <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
                 <div class="flex flex-col min-w-0 pr-2">
@@ -594,18 +570,13 @@ function openKreditDetail(customerName) {
 
     document.getElementById('kredit-detail-items').innerHTML = itemsHTML;
     document.getElementById('kredit-detail-total').innerText = formatRupiah(totalKreditAll);
-
-    // 5. Switch View UI
     document.getElementById('view-kredit').classList.add('hidden');
     document.getElementById('view-kredit-detail').classList.remove('hidden');
 }
 
-// --- NEW FUNGSI: TUTUP RINCIAN DATA KREDIT ---
 function closeKreditDetail() {
     document.getElementById('view-kredit-detail').classList.add('hidden');
     document.getElementById('view-kredit').classList.remove('hidden');
-    
-    // Render ulang list untuk memastikan data *fresh*
     renderKreditList();
 }
 
@@ -615,13 +586,11 @@ function resetForm() {
     state.selectedServiceIds = [];
     state.quantities = {};
     state.total = 0;
-    
     services.forEach(srv => {
         const inputArea = document.getElementById(`input-area-${srv.id}`);
         if(inputArea) inputArea.classList.add('hidden');
         state.quantities[srv.id] = 1;
     });
-
     updateServiceUI();
     hitungTotal();
 }
@@ -630,9 +599,7 @@ function shakeElement(id) {
     const el = document.getElementById(id);
     if(el) {
         el.classList.add('ring-2', 'ring-red-500', 'animate-pulse');
-        setTimeout(() => {
-            el.classList.remove('ring-2', 'ring-red-500', 'animate-pulse');
-        }, 500);
+        setTimeout(() => { el.classList.remove('ring-2', 'ring-red-500', 'animate-pulse'); }, 500);
     }
 }
 
