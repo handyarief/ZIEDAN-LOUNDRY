@@ -8,10 +8,9 @@ const services = [
 ];
 
 // --- KONFIGURASI SUPABASE ---
-// CATATAN DEV: Jika setelah update ini muncul error 401 Unauthorized, 
-// pastikan SUPABASE_KEY ini menggunakan 'anon / public key' yang valid (biasanya berawalan eyJ...)
+// CATATAN DEV: Menggunakan Legacy anon public key (JWT) yang valid untuk otorisasi database frontend
 const SUPABASE_URL = 'https://qgezrmiuwkmwfglblqet.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_HX9kjtBshfYgo12UpKJBlg_TqNPE5Vc';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZXpybWl1d2ttd2ZnbGJscWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDk5NzAsImV4cCI6MjA4NzE4NTk3MH0.qxd3eTWFfQC6QEl56xzvJFHcmAO7gqsx17cEaCTkkRg';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- STATE MANAGEMENT ---
@@ -37,23 +36,27 @@ function formatTanggalLokal(isoString) {
 
 // --- FUNGSI FETCH DATA DARI SUPABASE ---
 async function fetchOrders() {
-    const { data, error } = await supabaseClient
-        .from('orders')
-        .select('*')
-        .order('id', { ascending: false });
-    
-    if (error) {
-        console.error("Error fetching orders:", error);
-        return;
-    }
-    allOrders = data || [];
-    
-    // Update UI jika sedang berada di halaman yang relevan
-    if (!document.getElementById('view-orders').classList.contains('hidden')) {
-        renderOrderList();
-    }
-    if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
-        renderKreditList();
+    try {
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .select('*')
+            .order('id', { ascending: false });
+        
+        if (error) {
+            console.error("Error fetching orders:", error);
+            return;
+        }
+        allOrders = data || [];
+        
+        // Update UI jika sedang berada di halaman yang relevan
+        if (!document.getElementById('view-orders').classList.contains('hidden')) {
+            renderOrderList();
+        }
+        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
+            renderKreditList();
+        }
+    } catch (err) {
+        console.error("Network error saat mengambil data:", err);
     }
 }
 
@@ -89,7 +92,6 @@ function initApp() {
     hitungTotal();
     fetchOrders(); // Load data dari database saat aplikasi dibuka
 }
-
 function toggleService(index) {
     const serviceIndex = state.selectedServiceIds.indexOf(index);
     const inputArea = document.getElementById(`input-area-${index}`);
@@ -158,7 +160,7 @@ function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
 
-// --- UPDATE: SIMPAN KE SUPABASE (MODIFIED) ---
+// --- UPDATE: SIMPAN KE SUPABASE (MODIFIED DENGAN TRY...CATCH) ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
     const wa = document.getElementById('custWa').value.trim();
@@ -182,7 +184,6 @@ async function prosesPesanan() {
     const newOrder = {
         customer: nama,
         whatsapp: wa,
-        // UPDATE KRUSIAL: Menggunakan ISO string agar database aman menerimanya
         date: new Date().toISOString(),
         payment: 'cash',
         status: 'baru', 
@@ -193,24 +194,32 @@ async function prosesPesanan() {
         total: state.total
     };
 
-    // Insert to Supabase
-    const { data, error } = await supabaseClient.from('orders').insert([newOrder]);
+    try {
+        // Insert to Supabase
+        const { data, error } = await supabaseClient.from('orders').insert([newOrder]);
 
-    btnSimpan.innerHTML = originalText;
-    btnSimpan.disabled = false;
-
-    if (error) {
-        // EXPOSE ERROR: Sekarang kita bisa melihat pesan error spesifik dari server
-        let errorMsg = error.message || error.details || JSON.stringify(error);
-        alert("GAGAL MENYIMPAN KE SERVER!\n\nDetail Error:\n" + errorMsg);
-        console.error("Insert error detail:", error);
-        return;
+        if (error) {
+            // Tangkap error spesifik dari server Supabase (misal RLS / payload salah)
+            let errorMsg = error.message || error.details || JSON.stringify(error);
+            alert("GAGAL MENYIMPAN KE SERVER!\n\nDetail Error:\n" + errorMsg);
+            console.error("Insert error detail:", error);
+        } else {
+            // Sukses
+            await fetchOrders(); // Reload data
+            switchToOrders();
+            resetForm();
+        }
+    } catch (err) {
+        // Tangkap error jaringan (HP offline, gagal konek API, dll)
+        alert("Gagal menyimpan pesanan. Cek koneksi internet.");
+        console.error("Network/System error saat insert:", err);
+    } finally {
+        // Kembalikan UI tombol seperti semula apapun hasilnya
+        btnSimpan.innerHTML = originalText;
+        btnSimpan.disabled = false;
     }
-
-    await fetchOrders(); // Reload data
-    switchToOrders();
-    resetForm();
 }
+
 function switchToOrders() {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
@@ -241,7 +250,6 @@ function switchToKredit() {
     if(footer) footer.classList.add('translate-y-full', 'opacity-0');
     renderKreditList(); 
 }
-
 function renderOrderList() {
     const container = document.getElementById('order-list');
     if (allOrders.length === 0) {
@@ -425,7 +433,6 @@ async function updateOrderStatus(status) {
         if (error) console.error("Error updating status:", error);
     }
 }
-
 function refreshStatusUI(status) {
     const btnProses = document.getElementById('btn-status-proses');
     const btnSelesai = document.getElementById('btn-status-selesai');
