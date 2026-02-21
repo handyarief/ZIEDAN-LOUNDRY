@@ -199,7 +199,6 @@ function toggleService(index) {
     updateServiceUI();
     hitungTotal();
 }
-
 function updateServiceUI() {
     services.forEach((srv, idx) => {
         const card = document.getElementById(`srv-${idx}`);
@@ -460,7 +459,7 @@ function renderOrderList() {
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-xs font-bold text-brand-900 truncate w-full">${order.customer}</span>
+                    <span class="text-xs font-bold text-brand-900 leading-tight break-words w-full">${order.customer}</span>
                 </div>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
@@ -571,7 +570,6 @@ async function updatePayment(method) {
         if (error) console.error("Error updating payment:", error);
     }
 }
-
 function refreshPaymentUI(paymentStatus) {
     const badgeDetail = document.getElementById('payment-badge');
     const badgeTicket = document.getElementById('ticket-payment-badge');
@@ -678,6 +676,7 @@ function closeTicketModal() {
         modal.classList.remove('flex');
     }, 300);
 }
+
 // --- FIX UTAMA: RESOLUSI DOWNLOAD & OFF-SCREEN RENDERING ---
 function downloadETicket() {
     const originalTicketElement = document.getElementById('ticket-area');
