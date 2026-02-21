@@ -25,7 +25,7 @@ let state = {
 let allOrders = [];
 let currentOrderId = null;
 
-// --- HELPER FUNGSI TANGGAL (BARU) ---
+// --- HELPER FUNGSI TANGGAL ---
 function formatTanggalLokal(isoString) {
     try {
         const d = new Date(isoString);
@@ -36,6 +36,17 @@ function formatTanggalLokal(isoString) {
         return d.toLocaleDateString('id-ID', options);
     } catch (e) {
         return isoString;
+    }
+}
+
+// Tambahan helper tanggal singkat untuk List Kredit
+function formatTanggalSingkat(isoString) {
+    try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+    } catch (e) {
+        return '-';
     }
 }
 
@@ -371,6 +382,7 @@ function switchToKredit() {
     renderKreditList(); 
 }
 
+// UPDATE: Modifikasi fungsi hapusPesanan untuk me-refresh Rincian Kredit
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
 
@@ -381,13 +393,30 @@ async function hapusPesanan(id, event) {
     if (orderIndex === -1) return;
 
     const targetOrder = allOrders[orderIndex];
+    const targetCustomerName = targetOrder.customer;
+    const isKredit = targetOrder.payment === 'kredit';
 
     allOrders.splice(orderIndex, 1);
     saveLocalOrders(allOrders);
 
     renderOrderList();
-    if (!document.getElementById('view-kredit').classList.contains('hidden')) {
+    
+    // UPDATE LOGIC: Cek view mana yang sedang aktif
+    const viewKreditDetail = document.getElementById('view-kredit-detail');
+    const viewKredit = document.getElementById('view-kredit');
+
+    if (viewKredit && !viewKredit.classList.contains('hidden')) {
         renderKreditList();
+    }
+
+    if (viewKreditDetail && !viewKreditDetail.classList.contains('hidden') && isKredit) {
+        // Cek sisa transaksi kredit untuk nama ini
+        const sisaKredit = allOrders.filter(o => o.customer.trim().toUpperCase() === targetCustomerName.trim().toUpperCase() && o.payment === 'kredit');
+        if (sisaKredit.length > 0) {
+            openKreditDetail(targetCustomerName); // Re-render detail
+        } else {
+            closeKreditDetail(); // Tutup detail jika sudah tidak ada transaksi
+        }
     }
 
     if (targetOrder._isPending) {
@@ -406,6 +435,53 @@ async function hapusPesanan(id, event) {
             console.error("Error jaringan saat menghapus:", err);
             alert("Gagal terhubung ke server untuk menghapus data.");
             fetchOrders(); 
+        }
+    }
+}
+
+// UPDATE: Fungsi Baru untuk menghapus SEMUA kredit berdasarkan nama pelanggan
+async function hapusSemuaKreditPelanggan(customerName, event) {
+    if (event) event.stopPropagation();
+
+    const konfirmasi = confirm(`Apakah Anda yakin ingin menghapus SEMUA data kredit untuk pelanggan: ${customerName}? Data yang dihapus tidak bisa dikembalikan.`);
+    if (!konfirmasi) return;
+
+    const targetName = customerName.trim().toUpperCase();
+    
+    // Filter pesanan yang sesuai dengan target
+    const ordersToDelete = allOrders.filter(o => o.customer.trim().toUpperCase() === targetName && o.payment === 'kredit');
+    if (ordersToDelete.length === 0) return;
+
+    const idsToDelete = ordersToDelete.map(o => o.id);
+    
+    // Update State Lokal
+    allOrders = allOrders.filter(o => !idsToDelete.includes(o.id));
+    saveLocalOrders(allOrders);
+
+    // Update list Pending jika ada yang tersangkut
+    let pending = getPendingOrders();
+    pending = pending.filter(o => !idsToDelete.includes(o.id));
+    savePendingOrders(pending);
+
+    // Render ulang UI
+    renderOrderList();
+    renderKreditList();
+    
+    // Sinkronisasi Hapus ke Server (Bulk Delete menggunakan IN)
+    const serverIds = ordersToDelete.filter(o => !o._isPending).map(o => o.id);
+    
+    if (serverIds.length > 0) {
+        try {
+            const { error } = await supabaseClient.from('orders').delete().in('id', serverIds);
+            if (error) {
+                console.error("Gagal menghapus beberapa data dari server:", error);
+                alert("Beberapa data mungkin gagal terhapus sepenuhnya di server.");
+                fetchOrders();
+            }
+        } catch (err) {
+            console.error("Error jaringan saat menghapus massal:", err);
+            alert("Gagal terhubung ke server untuk menghapus semua data.");
+            fetchOrders();
         }
     }
 }
@@ -619,6 +695,7 @@ async function updateOrderStatus(status) {
         if (error) console.error("Error updating status:", error);
     }
 }
+
 function refreshStatusUI(status) {
     const btnProses = document.getElementById('btn-status-proses');
     const btnSelesai = document.getElementById('btn-status-selesai');
@@ -745,8 +822,7 @@ function closeOrderDetail() {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
 }
-
-// --- PERBAIKAN RENDER KREDIT LIST (TUGAS UTAMA) ---
+// --- UPDATE: RENDER KREDIT LIST DENGAN GRID TERBARU ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
     const kreditOrders = allOrders.filter(o => o.payment === 'kredit');
@@ -773,9 +849,10 @@ function renderKreditList() {
 
     const groupedArray = Object.values(groupedKredit);
     container.innerHTML = groupedArray.map((data, index) => {
+        const nameStr = data.displayName.replace(/'/g, "\\'"); // Escape tanda kutip untuk keamanan onClick
         return `
-        <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${data.displayName}')">
-            <div class="grid grid-cols-[25px_1.2fr_auto_0.8fr_1.1fr] gap-2 items-center">
+        <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
+            <div class="grid grid-cols-[25px_1fr_auto_45px_1fr_25px] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
@@ -793,41 +870,60 @@ function renderKreditList() {
                 <div class="flex items-center justify-end text-right">
                     <span class="text-xs font-black text-red-600">${formatRupiah(data.totalAmount)}</span>
                 </div>
+
+                <button onclick="hapusSemuaKreditPelanggan('${nameStr}', event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 transition-all ml-auto focus:outline-none" title="Hapus Semua Kredit ${data.displayName}">
+                    <i class="fas fa-trash-alt text-[10px] pointer-events-none"></i>
+                </button>
             </div>
         </div>
         `;
     }).join('');
 }
 
+// --- UPDATE: RINCIAN KREDIT DIUBAH MENJADI TABEL MINIMALIS ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === targetName && o.payment === 'kredit');
     if (customerOrders.length === 0) return;
 
-    const latestWa = customerOrders[0].whatsapp || '-';
-    document.getElementById('kredit-detail-name').innerText = customerOrders[0].customer; 
-    document.getElementById('kredit-detail-wa').innerText = latestWa;
+    const titleEl = document.getElementById('kredit-detail-title');
+    if (titleEl) {
+        titleEl.innerText = `Rincian: ${customerOrders[0].customer}`;
+    }
 
     let itemsHTML = '';
     let totalKreditAll = 0;
+    let counter = 1;
 
     customerOrders.forEach(order => {
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
-        let summaryService = itemsArr.length > 0 ? itemsArr.map(i => i.name).join(', ') : 'Layanan';
         totalKreditAll += order.total;
-        itemsHTML += `
-            <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
-                <div class="flex flex-col min-w-0 pr-2">
-                    <span class="font-bold text-brand-900 break-words leading-tight">${summaryService}</span>
-                    <span class="text-[10px] text-gray-400 mt-0.5"><i class="far fa-clock mr-1"></i>${formatTanggalLokal(order.date)}</span>
+        const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
+
+        itemsArr.forEach(item => {
+            const subTotal = item.qty * (item.price || 0);
+            
+            itemsHTML += `
+            <div class="grid grid-cols-[20px_1fr_35px_40px_1fr_25px] gap-2 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
+                <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
+                <div class="flex flex-col min-w-0 pr-1">
+                    <span class="text-xs font-bold text-brand-900 truncate">${item.name}</span>
                 </div>
-                <span class="font-extrabold text-red-500 whitespace-nowrap ml-2">${formatRupiah(order.total)}</span>
+                <span class="text-[9px] font-extrabold bg-brand-50 text-brand-900 px-1 py-1 rounded border border-brand-100 text-center whitespace-nowrap">${item.qty}${item.unit.toUpperCase()}</span>
+                <span class="text-[9px] text-gray-500 font-medium text-center leading-tight">${formatTanggalSingkat(order.date)}</span>
+                <span class="text-[11px] font-extrabold text-red-500 text-right">${formatRupiah(subTotal)}</span>
+                
+                <button onclick="hapusPesanan(${idAttr}, event)" class="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Transaksi">
+                    <i class="fas fa-times text-[10px] pointer-events-none"></i>
+                </button>
             </div>
-        `;
+            `;
+        });
     });
 
     document.getElementById('kredit-detail-items').innerHTML = itemsHTML;
     document.getElementById('kredit-detail-total').innerText = formatRupiah(totalKreditAll);
+    
     document.getElementById('view-kredit').classList.add('hidden');
     document.getElementById('view-kredit-detail').classList.remove('hidden');
 }
