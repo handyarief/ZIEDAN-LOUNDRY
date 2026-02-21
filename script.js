@@ -160,7 +160,7 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
-// --- UPDATE: SIMPAN KE SUPABASE (MODIFIED DENGAN TRY...CATCH & FIX LOGIKA RENDER) ---
+// --- UPDATE: SIMPAN KE SUPABASE (MODIFIED DENGAN FIX BUG GAGAL SIMPAN) ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
     const wa = document.getElementById('custWa').value.trim();
@@ -183,7 +183,7 @@ async function prosesPesanan() {
 
     const newOrder = {
         customer: nama,
-        whatsapp: wa,
+        whatsapp: wa || null, // FIX 1: Kirim null jika kosong, hindari error validasi DB (empty string)
         date: new Date().toISOString(),
         payment: 'cash',
         status: 'baru', 
@@ -195,27 +195,29 @@ async function prosesPesanan() {
     };
 
     try {
-        // Insert to Supabase
-        const { data, error } = await supabaseClient.from('orders').insert([newOrder]);
+        // FIX 2: Tambahkan .select() agar Supabase me-return data yang di-insert beserta ID aslinya
+        const { data, error } = await supabaseClient.from('orders').insert([newOrder]).select();
 
         if (error) {
-            // Tangkap error spesifik dari server Supabase (misal RLS / payload salah)
             let errorMsg = error.message || error.details || JSON.stringify(error);
             alert("GAGAL MENYIMPAN KE SERVER!\n\nDetail Error:\n" + errorMsg);
             console.error("Insert error detail:", error);
         } else {
-            // FIX LOGIKA: Pindah halaman dulu SEBELUM menarik data
-            // Supaya saat data ditarik, fungsi render tidak diblokir oleh pengecekan halaman 'hidden'
+            // FIX 3: Optimistic UI Update. Masukkan langsung data dari DB ke state lokal sebelum render.
+            if (data && data.length > 0) {
+                allOrders.unshift(data[0]); 
+            }
+            
             switchToOrders(); 
-            await fetchOrders(); 
+            
+            // fetchOrders() dipanggil tanpa 'await' supaya jalan di background & tidak menahan render UI.
+            fetchOrders(); 
             resetForm();
         }
     } catch (err) {
-        // Tangkap error jaringan (HP offline, gagal konek API, dll)
         alert("Gagal menyimpan pesanan. Cek koneksi internet.");
         console.error("Network/System error saat insert:", err);
     } finally {
-        // Kembalikan UI tombol seperti semula apapun hasilnya
         btnSimpan.innerHTML = originalText;
         btnSimpan.disabled = false;
     }
@@ -230,7 +232,7 @@ function switchToOrders() {
     const footer = document.getElementById('footer-total');
     if(footer) footer.classList.add('translate-y-full', 'opacity-0');
     
-    // FIX PENGAMANAN UI: Selalu paksa render list tiap kali halaman Data Pesanan dibuka
+    // UI langsung merender state lokal terbaru dari Optimistic UI
     renderOrderList(); 
 }
 
@@ -255,6 +257,7 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
+
 function renderOrderList() {
     const container = document.getElementById('order-list');
     if (allOrders.length === 0) {
@@ -309,7 +312,6 @@ function renderOrderList() {
         `;
     }).join('');
 }
-
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id === id);
     if (!order) return;
@@ -609,11 +611,18 @@ function resetForm() {
     state.selectedServiceIds = [];
     state.quantities = {};
     state.total = 0;
+    
+    // FIX 4: Pastikan nilai input di UI kembali ke 1 setelah form di-reset
     services.forEach(srv => {
         const inputArea = document.getElementById(`input-area-${srv.id}`);
+        const inputField = document.getElementById(`input-${srv.id}`);
+        
         if(inputArea) inputArea.classList.add('hidden');
-        state.quantities[srv.id] = 1;
+        if(inputField) inputField.value = 1; // Mengembalikan tampilan input ke default 1
+        
+        state.quantities[srv.id] = 1; // Reset state kuantitas ke 1
     });
+    
     updateServiceUI();
     hitungTotal();
 }
