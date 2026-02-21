@@ -178,7 +178,6 @@ function navTo(page) {
     else if (page === 'kredit') { switchToKredit(); }
     toggleMenu(); 
 }
-
 // --- FUNGSI UTAMA ---
 function initApp() {
     services.forEach(srv => {
@@ -381,7 +380,6 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
-
 // UPDATE: Modifikasi fungsi hapusPesanan untuk me-refresh Rincian Kredit
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -727,7 +725,6 @@ function refreshStatusUI(status) {
         }
     }
 }
-
 function openTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
@@ -903,11 +900,12 @@ function openKreditDetail(customerName) {
         itemsArr.forEach(item => {
             const subTotal = item.qty * (item.price || 0);
             
+            // PERBAIKAN: class grid diubah proporsinya menyamai header (1.2fr), class 'truncate' dihapus menjadi 'leading-tight break-words'
             itemsHTML += `
-            <div class="grid grid-cols-[20px_1fr_35px_40px_1fr_25px] gap-2 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
+            <div class="grid grid-cols-[20px_1.2fr_35px_40px_1fr_25px] gap-2 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
                 <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
                 <div class="flex flex-col min-w-0 pr-1">
-                    <span class="text-xs font-bold text-brand-900 truncate">${item.name}</span>
+                    <span class="text-xs font-bold text-brand-900 leading-tight break-words">${item.name}</span>
                 </div>
                 <span class="text-[9px] font-extrabold bg-brand-50 text-brand-900 px-1 py-1 rounded border border-brand-100 text-center whitespace-nowrap">${item.qty}${item.unit.toUpperCase()}</span>
                 <span class="text-[9px] text-gray-500 font-medium text-center leading-tight">${formatTanggalSingkat(order.date)}</span>
