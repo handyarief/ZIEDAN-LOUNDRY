@@ -271,7 +271,6 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
-
 // --- FIX UTAMA: SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
@@ -491,7 +490,6 @@ async function hapusPesanan(id, event) {
         }
     }
 }
-
 // --- RENDER ORDER LIST (DIPERBARUI) ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -536,21 +534,26 @@ function renderOrderList() {
         // Gunakan string ID untuk onclick agar kompatibel dengan localId (string) dan DB id (number)
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
+        // UPDATE: Perubahan Grid dan Posisi Status
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
-            <div class="grid grid-cols-[25px_1.2fr_1fr_1fr_30px] gap-2 items-center">
+            <div class="grid grid-cols-[25px_1fr_auto_1fr_30px] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
-                <div class="flex flex-col items-start justify-center min-w-0 text-left">
+                
+                <div class="flex flex-col items-start justify-center min-w-0 text-left pr-2">
                     <span class="text-xs font-bold text-brand-900 truncate w-full">${order.customer}</span>
-                    <div class="mt-1">
-                        <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded-full inline-block whitespace-nowrap ${statusColor}">${statusText}</span>
-                    </div>
+                    <span class="text-[10px] text-gray-500 truncate w-full mt-0.5">${summaryService}</span>
                 </div>
-                <span class="text-[11px] text-gray-500 truncate">${summaryService}</span>
+                
+                <div class="flex items-center justify-center">
+                    <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded-full inline-block whitespace-nowrap ${statusColor}">${statusText}</span>
+                </div>
+                
                 <div class="flex items-center justify-end text-right">
                     <span class="text-xs font-extrabold text-brand-600">${formatRupiah(order.total)}</span>
                 </div>
+                
                 <button onclick="hapusPesanan(${idAttr}, event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Pesanan">
                     <i class="fas fa-trash-alt text-xs pointer-events-none"></i>
                 </button>
@@ -559,6 +562,7 @@ function renderOrderList() {
         `;
     }).join('');
 }
+
 function openOrderDetail(id) {
     // FIX: Cari order dengan == agar kompatibel string & number id
     const order = allOrders.find(o => o.id == id);
@@ -678,7 +682,6 @@ function refreshPaymentUI(paymentStatus) {
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
     }
 }
-
 async function updateOrderStatus(status) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);

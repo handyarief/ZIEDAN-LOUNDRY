@@ -109,7 +109,6 @@
     </div>
     
     <main class="flex-1 overflow-y-auto pt-28 pb-32 px-6 scroll-smooth z-10 print:pt-0 print:pb-0 print:px-0 print:overflow-visible" id="main-content">
-        
         <div id="view-home" class="transition-all duration-300 print:hidden relative z-10">
             <section class="mb-8 animate-fade-in-up">
                 <div class="bg-white/80 backdrop-blur-sm rounded-3xl p-1 shadow-soft border border-brand-100">
@@ -254,6 +253,7 @@
                 </div>
             </section>
         </div>
+
         <div id="view-orders" class="hidden transition-all duration-300 animate-fade-in-up print:hidden relative z-10">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="backToHome()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -264,17 +264,17 @@
                 <span class="text-[10px] font-bold text-brand-500 bg-brand-100 px-3 py-1 rounded-full">ADMIN MODE</span>
             </div>
 
-            <div class="grid grid-cols-[25px_1.2fr_1fr_1fr_30px] gap-2 px-4 mb-2 text-[9px] font-black text-brand-500 uppercase tracking-widest opacity-60">
+            <div class="grid grid-cols-[25px_1fr_auto_1fr_30px] gap-2 px-4 mb-2 text-[9px] font-black text-brand-500 uppercase tracking-widest opacity-60">
                 <span>#</span>
-                <span>Nama</span>
-                <span>Layanan</span>
+                <span>Nama & Layanan</span>
+                <span class="text-center">Status</span>
                 <span class="text-right">Total</span>
-                <span></span> </div>
+                <span></span> 
+            </div>
 
             <div id="order-list" class="space-y-2">
-                </div>
+            </div>
         </div>
-
         <div id="view-kredit" class="hidden transition-all duration-300 animate-fade-in-up print:hidden relative z-10">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="backToHome()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
