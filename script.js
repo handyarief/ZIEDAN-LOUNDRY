@@ -24,6 +24,7 @@ let state = {
 };
 let allOrders = [];
 let currentOrderId = null;
+let currentDetailKreditName = null; // NEW: Menyimpan nama pelanggan yang rincian kreditnya sedang dibuka
 
 // --- HELPER FUNGSI TANGGAL ---
 function formatTanggalLokal(isoString) {
@@ -31,7 +32,6 @@ function formatTanggalLokal(isoString) {
         const d = new Date(isoString);
         if (isNaN(d.getTime())) return isoString; 
         
-        // Format premium untuk nota
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
         return d.toLocaleDateString('id-ID', options);
     } catch (e) {
@@ -39,7 +39,6 @@ function formatTanggalLokal(isoString) {
     }
 }
 
-// Tambahan helper tanggal singkat untuk List Kredit
 function formatTanggalSingkat(isoString) {
     try {
         const d = new Date(isoString);
@@ -178,6 +177,7 @@ function navTo(page) {
     else if (page === 'kredit') { switchToKredit(); }
     toggleMenu(); 
 }
+
 // --- FUNGSI UTAMA ---
 function initApp() {
     services.forEach(srv => {
@@ -209,6 +209,7 @@ function toggleService(index) {
     updateServiceUI();
     hitungTotal();
 }
+
 function updateServiceUI() {
     services.forEach((srv, idx) => {
         const card = document.getElementById(`srv-${idx}`);
@@ -256,6 +257,7 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
+
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
@@ -281,6 +283,7 @@ async function prosesPesanan() {
         return { name: srv.name, qty: state.quantities[id], unit: srv.unit, price: srv.price };
     });
 
+    // NEW: Tambahkan kredit_paid: 0 secara default untuk pondasi fitur kredit
     const newOrder = {
         customer: nama,
         whatsapp: wa || null,
@@ -288,7 +291,8 @@ async function prosesPesanan() {
         payment: 'cash',
         status: 'baru', 
         items: itemsArray,
-        total: state.total
+        total: state.total,
+        kredit_paid: 0 
     };
 
     try {
@@ -346,7 +350,6 @@ async function prosesPesanan() {
         btnSimpan.disabled = false;
     }
 }
-
 function switchToOrders() {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
@@ -380,7 +383,8 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
-// UPDATE: Modifikasi fungsi hapusPesanan untuk me-refresh Rincian Kredit
+
+// --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
 
@@ -399,7 +403,6 @@ async function hapusPesanan(id, event) {
 
     renderOrderList();
     
-    // UPDATE LOGIC: Cek view mana yang sedang aktif
     const viewKreditDetail = document.getElementById('view-kredit-detail');
     const viewKredit = document.getElementById('view-kredit');
 
@@ -408,12 +411,11 @@ async function hapusPesanan(id, event) {
     }
 
     if (viewKreditDetail && !viewKreditDetail.classList.contains('hidden') && isKredit) {
-        // Cek sisa transaksi kredit untuk nama ini
         const sisaKredit = allOrders.filter(o => o.customer.trim().toUpperCase() === targetCustomerName.trim().toUpperCase() && o.payment === 'kredit');
         if (sisaKredit.length > 0) {
-            openKreditDetail(targetCustomerName); // Re-render detail
+            openKreditDetail(targetCustomerName); 
         } else {
-            closeKreditDetail(); // Tutup detail jika sudah tidak ada transaksi
+            closeKreditDetail(); 
         }
     }
 
@@ -437,7 +439,6 @@ async function hapusPesanan(id, event) {
     }
 }
 
-// UPDATE: Fungsi Baru untuk menghapus SEMUA kredit berdasarkan nama pelanggan
 async function hapusSemuaKreditPelanggan(customerName, event) {
     if (event) event.stopPropagation();
 
@@ -446,26 +447,21 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
 
     const targetName = customerName.trim().toUpperCase();
     
-    // Filter pesanan yang sesuai dengan target
     const ordersToDelete = allOrders.filter(o => o.customer.trim().toUpperCase() === targetName && o.payment === 'kredit');
     if (ordersToDelete.length === 0) return;
 
     const idsToDelete = ordersToDelete.map(o => o.id);
     
-    // Update State Lokal
     allOrders = allOrders.filter(o => !idsToDelete.includes(o.id));
     saveLocalOrders(allOrders);
 
-    // Update list Pending jika ada yang tersangkut
     let pending = getPendingOrders();
     pending = pending.filter(o => !idsToDelete.includes(o.id));
     savePendingOrders(pending);
 
-    // Render ulang UI
     renderOrderList();
     renderKreditList();
     
-    // Sinkronisasi Hapus ke Server (Bulk Delete menggunakan IN)
     const serverIds = ordersToDelete.filter(o => !o._isPending).map(o => o.id);
     
     if (serverIds.length > 0) {
@@ -483,6 +479,7 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
+
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -725,6 +722,7 @@ function refreshStatusUI(status) {
         }
     }
 }
+
 function openTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
@@ -819,7 +817,7 @@ function closeOrderDetail() {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
 }
-// --- UPDATE: RENDER KREDIT LIST DENGAN GRID TERBARU ---
+// --- RENDER KREDIT LIST ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
     const kreditOrders = allOrders.filter(o => o.payment === 'kredit');
@@ -838,15 +836,19 @@ function renderKreditList() {
     kreditOrders.forEach(order => {
         const keyName = order.customer.trim().toUpperCase(); 
         if (!groupedKredit[keyName]) {
-            groupedKredit[keyName] = { displayName: order.customer, totalAmount: 0, transactionCount: 0 };
+            groupedKredit[keyName] = { displayName: order.customer, totalAmount: 0, paidAmount: 0, transactionCount: 0 };
         }
         groupedKredit[keyName].totalAmount += order.total;
+        groupedKredit[keyName].paidAmount += (order.kredit_paid || 0);
         groupedKredit[keyName].transactionCount += 1;
     });
 
     const groupedArray = Object.values(groupedKredit);
     container.innerHTML = groupedArray.map((data, index) => {
-        const nameStr = data.displayName.replace(/'/g, "\\'"); // Escape tanda kutip untuk keamanan onClick
+        const sisa = data.totalAmount - data.paidAmount;
+        if(sisa <= 0) return ''; // Sembunyikan jika sudah lunas tapi status belum terupdate
+
+        const nameStr = data.displayName.replace(/'/g, "\\'"); 
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
             <div class="grid grid-cols-[25px_1fr_auto_45px_1fr_25px] gap-2 items-center">
@@ -857,7 +859,7 @@ function renderKreditList() {
                 </div>
 
                 <div class="flex items-center justify-center">
-                    <span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">BELUM LUNAS</span>
+                    <span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">SISA: ${formatRupiah(sisa)}</span>
                 </div>
 
                 <div class="flex items-center justify-center">
@@ -865,7 +867,7 @@ function renderKreditList() {
                 </div>
                 
                 <div class="flex items-center justify-end text-right">
-                    <span class="text-xs font-black text-red-600">${formatRupiah(data.totalAmount)}</span>
+                    <span class="text-xs font-black text-gray-400 line-through">${formatRupiah(data.totalAmount)}</span>
                 </div>
 
                 <button onclick="hapusSemuaKreditPelanggan('${nameStr}', event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 transition-all ml-auto focus:outline-none" title="Hapus Semua Kredit ${data.displayName}">
@@ -877,30 +879,36 @@ function renderKreditList() {
     }).join('');
 }
 
-// --- UPDATE: RINCIAN KREDIT DIUBAH MENJADI TABEL MINIMALIS ---
+// --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
+    currentDetailKreditName = targetName;
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === targetName && o.payment === 'kredit');
-    if (customerOrders.length === 0) return;
+    
+    if (customerOrders.length === 0) {
+        closeKreditDetail();
+        return;
+    }
 
     const titleEl = document.getElementById('kredit-detail-title');
-    if (titleEl) {
-        titleEl.innerText = `Rincian: ${customerOrders[0].customer}`;
-    }
+    if (titleEl) titleEl.innerText = `Rincian: ${customerOrders[0].customer}`;
 
     let itemsHTML = '';
     let totalKreditAll = 0;
+    let totalPaidAll = 0;
     let counter = 1;
 
     customerOrders.forEach(order => {
-        const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         totalKreditAll += order.total;
+        totalPaidAll += (order.kredit_paid || 0);
+        
+        const sisaOrder = order.total - (order.kredit_paid || 0);
+        if(sisaOrder <= 0) return; // Skip item jika lunas
+
+        const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
         itemsArr.forEach(item => {
-            const subTotal = item.qty * (item.price || 0);
-            
-            // PERBAIKAN: class grid diubah proporsinya menyamai header (1.2fr), class 'truncate' dihapus menjadi 'leading-tight break-words'
             itemsHTML += `
             <div class="grid grid-cols-[20px_1.2fr_35px_40px_1fr_25px] gap-2 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
                 <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
@@ -909,7 +917,7 @@ function openKreditDetail(customerName) {
                 </div>
                 <span class="text-[9px] font-extrabold bg-brand-50 text-brand-900 px-1 py-1 rounded border border-brand-100 text-center whitespace-nowrap">${item.qty}${item.unit.toUpperCase()}</span>
                 <span class="text-[9px] text-gray-500 font-medium text-center leading-tight">${formatTanggalSingkat(order.date)}</span>
-                <span class="text-[11px] font-extrabold text-red-500 text-right">${formatRupiah(subTotal)}</span>
+                <span class="text-[11px] font-extrabold text-red-500 text-right">${formatRupiah(item.qty * (item.price || 0))}</span>
                 
                 <button onclick="hapusPesanan(${idAttr}, event)" class="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Transaksi">
                     <i class="fas fa-times text-[10px] pointer-events-none"></i>
@@ -919,19 +927,236 @@ function openKreditDetail(customerName) {
         });
     });
 
+    const sisaKredit = totalKreditAll - totalPaidAll;
+    
     document.getElementById('kredit-detail-items').innerHTML = itemsHTML;
     document.getElementById('kredit-detail-total').innerText = formatRupiah(totalKreditAll);
+    document.getElementById('kredit-detail-paid').innerText = formatRupiah(totalPaidAll);
+    document.getElementById('kredit-detail-sisa').innerText = formatRupiah(sisaKredit);
+    
+    // Set Sisa untuk keperluan Modal Bayar & Cetak
+    window.currentSisaKredit = sisaKredit;
+    window.currentTotalKredit = totalKreditAll;
+    window.currentPaidKredit = totalPaidAll;
     
     document.getElementById('view-kredit').classList.add('hidden');
     document.getElementById('view-kredit-detail').classList.remove('hidden');
 }
 
 function closeKreditDetail() {
+    currentDetailKreditName = null;
     document.getElementById('view-kredit-detail').classList.add('hidden');
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
 }
 
+// --- LOGIKA PEMBAYARAN KREDIT (MODAL & PROSES) ---
+function openModalBayarKredit() {
+    document.getElementById('kredit-pay-sisa').innerText = formatRupiah(window.currentSisaKredit || 0);
+    document.getElementById('input-kredit-pay').value = '';
+    
+    const modal = document.getElementById('kredit-pay-modal');
+    const modalContent = document.getElementById('kredit-pay-modal-content');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeModalBayarKredit() {
+    const modal = document.getElementById('kredit-pay-modal');
+    const modalContent = document.getElementById('kredit-pay-modal-content');
+    modal.classList.add('opacity-0');
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+}
+
+function fillBayarPenuh() {
+    document.getElementById('input-kredit-pay').value = window.currentSisaKredit || 0;
+}
+
+async function prosesBayarKredit() {
+    const inputVal = parseInt(document.getElementById('input-kredit-pay').value);
+    if (isNaN(inputVal) || inputVal <= 0) {
+        alert("Masukkan nominal pembayaran yang valid.");
+        return;
+    }
+
+    if (inputVal > window.currentSisaKredit) {
+        alert("Nominal pembayaran melebihi sisa tagihan!");
+        return;
+    }
+
+    const btn = document.getElementById('btn-proses-kredit');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>MEMPROSES...</span>';
+    btn.disabled = true;
+
+    // Ambil order kredit atas nama pelanggan ini, urutkan dari yang paling lama (FIFO)
+    let customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
+    customerOrders.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    let sisaBayarInput = inputVal;
+
+    for (let order of customerOrders) {
+        if (sisaBayarInput <= 0) break;
+
+        let sisaTagihanOrder = order.total - (order.kredit_paid || 0);
+        
+        if (sisaTagihanOrder > 0) {
+            let bayarUntukOrderIni = Math.min(sisaBayarInput, sisaTagihanOrder);
+            order.kredit_paid = (order.kredit_paid || 0) + bayarUntukOrderIni;
+            sisaBayarInput -= bayarUntukOrderIni;
+
+            // Jika lunas, otomatis ganti status payment jadi cash
+            if (order.kredit_paid >= order.total) {
+                order.payment = 'cash';
+            }
+
+            // Update ke LocalStorage & Pending
+            saveLocalOrders(allOrders);
+            if (order._isPending) {
+                const pending = getPendingOrders();
+                const pi = pending.findIndex(o => o.id == order.id);
+                if (pi > -1) { 
+                    pending[pi].kredit_paid = order.kredit_paid; 
+                    pending[pi].payment = order.payment;
+                    savePendingOrders(pending); 
+                }
+            } else {
+                // Update ke Supabase
+                await supabaseClient.from('orders')
+                    .update({ kredit_paid: order.kredit_paid, payment: order.payment })
+                    .eq('id', order.id);
+            }
+        }
+    }
+
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+    closeModalBayarKredit();
+    
+    // Render ulang
+    openKreditDetail(currentDetailKreditName);
+}
+
+// --- LOGIKA CETAK NOTA KREDIT ---
+function cetakRekapKredit() {
+    const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
+    
+    document.getElementById('kt-name').innerText = customerOrders[0].customer;
+    document.getElementById('kt-date').innerText = formatTanggalLokal(new Date().toISOString());
+    
+    let itemsHTML = '';
+    customerOrders.forEach(order => {
+        const sisaOrder = order.total - (order.kredit_paid || 0);
+        if(sisaOrder <= 0) return; 
+
+        const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+        itemsArr.forEach(item => {
+            itemsHTML += `
+            <div class="flex justify-between items-center text-xs text-gray-600 border-b border-gray-100 last:border-0 py-2">
+                <div class="flex flex-col">
+                    <span class="font-bold text-brand-900">${item.name} (${item.qty}${item.unit})</span>
+                    <span class="text-[10px] text-gray-500">${formatTanggalSingkat(order.date)}</span>
+                </div>
+                <span class="font-extrabold text-brand-900">${formatRupiah(item.qty * (item.price || 0))}</span>
+            </div>
+            `;
+        });
+    });
+
+    document.getElementById('kt-items').innerHTML = itemsHTML;
+    document.getElementById('kt-total').innerText = formatRupiah(window.currentTotalKredit);
+    document.getElementById('kt-paid').innerText = formatRupiah(window.currentPaidKredit);
+    document.getElementById('kt-sisa').innerText = formatRupiah(window.currentSisaKredit);
+
+    const modal = document.getElementById('kredit-ticket-modal');
+    const modalContent = document.getElementById('kredit-ticket-modal-content');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeKreditTicketModal() {
+    const modal = document.getElementById('kredit-ticket-modal');
+    const modalContent = document.getElementById('kredit-ticket-modal-content');
+    modal.classList.add('opacity-0');
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+}
+
+function downloadKreditTicket() {
+    const originalElement = document.getElementById('kredit-ticket-area');
+    const btnDownload = document.getElementById('btn-download-kt');
+    const originalContent = btnDownload.innerHTML;
+    
+    btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses Nota...</span>';
+    btnDownload.disabled = true;
+    btnDownload.classList.add('opacity-70');
+
+    const offScreenContainer = document.createElement('div');
+    offScreenContainer.style.position = 'absolute';
+    offScreenContainer.style.left = '-9999px';
+    offScreenContainer.style.top = '0';
+    offScreenContainer.style.width = '450px'; 
+    offScreenContainer.style.backgroundColor = '#ffffff'; 
+    
+    const clone = originalElement.cloneNode(true);
+    clone.style.height = 'auto';
+    clone.style.maxHeight = 'none';
+    clone.style.overflow = 'visible';
+    clone.classList.remove('overflow-y-auto');
+    clone.style.padding = '40px'; 
+
+    const titleEl = clone.querySelector('h1.text-transparent');
+    if (titleEl) {
+        titleEl.classList.remove('text-transparent', 'bg-clip-text', 'bg-gradient-to-r', 'from-brand-700', 'via-brand-500', 'to-cyan-400');
+        titleEl.style.color = '#0ea5e9'; 
+    }
+
+    offScreenContainer.appendChild(clone);
+    document.body.appendChild(offScreenContainer);
+
+    html2canvas(clone, { scale: 3, backgroundColor: "#ffffff", useCORS: true, allowTaint: true, windowWidth: 450 })
+    .then(canvas => {
+        document.body.removeChild(offScreenContainer);
+        btnDownload.innerHTML = originalContent;
+        btnDownload.disabled = false;
+        btnDownload.classList.remove('opacity-70');
+        
+        const image = canvas.toDataURL("image/jpeg", 1.0);
+        const link = document.createElement('a');
+        const custName = document.getElementById('kt-name').innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase();
+        
+        link.download = `TAGIHAN-KREDIT-${custName}.jpg`;
+        link.href = image;
+        link.click();
+    }).catch(error => {
+        if(document.body.contains(offScreenContainer)) document.body.removeChild(offScreenContainer);
+        btnDownload.innerHTML = originalContent;
+        btnDownload.disabled = false;
+        btnDownload.classList.remove('opacity-70');
+        alert("Terjadi kesalahan saat memproses Nota Tagihan.");
+    });
+}
+
+// --- UTILITIES LAINNYA ---
 function resetForm() {
     document.getElementById('custName').value = "";
     document.getElementById('custWa').value = "";

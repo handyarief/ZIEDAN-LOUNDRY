@@ -289,7 +289,7 @@
             <div class="grid grid-cols-[25px_1fr_auto_45px_1fr_25px] gap-2 px-4 mb-2 text-[9px] font-black text-red-500 uppercase tracking-widest opacity-60 items-center">
                 <span>#</span>
                 <span>Nama</span>
-                <span class="text-center">Status</span>
+                <span class="text-center">Sisa</span>
                 <span class="text-center">Trans.</span>
                 <span class="text-right">Total</span>
                 <span></span>
@@ -298,7 +298,6 @@
             <div id="kredit-list" class="space-y-2">
             </div>
         </div>
-
         <div id="view-kredit-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="closeKreditDetail()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -307,7 +306,28 @@
                 <h2 id="kredit-detail-title" class="text-lg font-extrabold text-brand-900 truncate">Rincian Kredit</h2>
             </div>
 
+            <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-5 shadow-md border border-red-400 mb-6 text-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10 pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-black opacity-5 rounded-full -ml-8 -mb-8 pointer-events-none"></div>
+                
+                <p class="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-80">Total Sisa Tagihan</p>
+                <h3 id="kredit-detail-sisa" class="text-3xl font-black leading-tight mb-4 drop-shadow-sm">Rp 0</h3>
+                
+                <div class="flex justify-between items-center bg-black/10 rounded-xl p-3 backdrop-blur-sm border border-white/10">
+                    <div class="flex flex-col">
+                        <span class="text-[9px] uppercase tracking-wider opacity-70 font-bold">Total Tagihan</span>
+                        <span id="kredit-detail-total" class="font-bold text-sm">Rp 0</span>
+                    </div>
+                    <div class="w-px h-6 bg-white/20"></div>
+                    <div class="flex flex-col text-right">
+                        <span class="text-[9px] uppercase tracking-wider opacity-70 font-bold">Sudah Dibayar</span>
+                        <span id="kredit-detail-paid" class="font-bold text-sm">Rp 0</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-brand-100 mb-6">
+                <h4 class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-3">Riwayat Transaksi (Belum Lunas)</h4>
                 <div class="grid grid-cols-[20px_1.2fr_35px_40px_1fr_25px] gap-2 mb-2 pb-2 border-b border-gray-100 text-[9px] font-black text-gray-400 uppercase tracking-widest items-center">
                     <span>No</span>
                     <span>Layanan</span>
@@ -319,14 +339,20 @@
                 
                 <div id="kredit-detail-items" class="space-y-0">
                     </div>
-                
-                <div class="w-full border-b border-dashed border-gray-200 my-4"></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">TOTAL TAGIHAN</span>
-                    <span id="kredit-detail-total" class="text-lg font-extrabold text-red-500">...</span>
-                </div>
+            </div>
+
+            <div class="space-y-3 mb-8">
+                <button onclick="openModalBayarKredit()" id="btn-bayar-kredit" class="w-full bg-green-500 hover:bg-green-600 text-white text-sm font-extrabold py-4 px-6 rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>BAYAR KREDIT</span>
+                </button>
+                <button onclick="cetakRekapKredit()" id="btn-cetak-kredit" class="w-full bg-brand-900 hover:bg-brand-800 text-white text-sm font-extrabold py-4 px-6 rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md">
+                    <i class="fas fa-print"></i>
+                    <span>CETAK REKAP & SISA TAGIHAN</span>
+                </button>
             </div>
         </div>
+
         <div id="view-order-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="closeOrderDetail()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -394,7 +420,103 @@
         
         <div class="h-4"></div>
     </main>
-    
+    <div id="kredit-pay-modal" class="fixed inset-0 z-[75] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
+        <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl transform scale-95 transition-transform duration-300" id="kredit-pay-modal-content">
+            <div class="flex justify-between items-center p-4 border-b border-brand-100 bg-gradient-to-r from-green-50 to-emerald-50 shrink-0">
+                <h3 class="font-bold text-sm text-brand-900"><i class="fas fa-money-bill-wave text-green-500 mr-2"></i>Pembayaran Kredit</h3>
+                <button onclick="closeModalBayarKredit()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 hover:text-red-500 shadow-sm transition-colors border border-gray-200">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            <div class="p-6 bg-white relative w-full">
+                <p class="text-xs text-gray-500 mb-2 font-medium">Sisa Tagihan saat ini:</p>
+                <p id="kredit-pay-sisa" class="text-2xl font-black text-red-500 mb-6">Rp 0</p>
+                
+                <div class="relative group mb-4">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <span class="text-gray-400 font-bold text-lg">Rp</span>
+                    </div>
+                    <input type="number" id="input-kredit-pay" class="w-full pl-12 pr-4 py-4 bg-transparent rounded-2xl text-brand-900 placeholder-gray-400 focus:outline-none focus:bg-brand-50 transition-all font-bold text-lg border border-gray-200" placeholder="0">
+                </div>
+                <button onclick="fillBayarPenuh()" class="text-[10px] font-bold text-brand-500 bg-brand-50 px-3 py-2 rounded-lg border border-brand-100 mb-2 active:scale-95 transition-all shadow-sm w-full">
+                    ISI BAYAR PENUH (LUNAS)
+                </button>
+            </div>
+            <div class="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
+                <button onclick="prosesBayarKredit()" id="btn-proses-kredit" class="w-full bg-green-500 hover:bg-green-600 text-white text-sm font-extrabold py-4 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md">
+                    <i class="fas fa-check-circle"></i>
+                    <span>KONFIRMASI PEMBAYARAN</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="kredit-ticket-modal" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
+        <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95vh] shadow-2xl transform scale-95 transition-transform duration-300" id="kredit-ticket-modal-content">
+            <div class="flex justify-between items-center p-4 border-b border-brand-100 bg-gradient-to-r from-red-50 to-orange-50 shrink-0">
+                <h3 class="font-bold text-sm text-brand-900"><i class="fas fa-file-invoice-dollar text-red-500 mr-2"></i>Nota Tagihan Kredit</h3>
+                <button onclick="closeKreditTicketModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 hover:text-red-500 shadow-sm transition-colors border border-gray-200">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto p-6 bg-white relative w-full" id="kredit-ticket-area">
+                <div class="flex flex-col items-center justify-center mb-6 text-center">
+                    <img src="logo.jpg" alt="Ziedan Laundry Logo" class="w-20 h-20 rounded-full object-cover border-4 border-brand-50 mb-3 shadow-sm">
+                    <h1 class="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-brand-700 via-brand-500 to-cyan-400 uppercase leading-none">ZIEDAN LAUNDRY</h1>
+                    <span class="text-[10px] text-red-600 font-bold mt-2 tracking-widest uppercase bg-red-50 px-4 py-1.5 rounded-full border border-red-100 shadow-sm">REKAP TAGIHAN</span>
+                </div>
+
+                <div class="w-full border-b-2 border-dashed border-gray-200 mb-6"></div>
+
+                <div class="flex justify-between items-start mb-6">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-brand-500 font-bold uppercase tracking-wider mb-1">Pelanggan</span>
+                        <h3 id="kt-name" class="text-xl font-extrabold text-brand-900 leading-tight break-words">...</h3>
+                        <p id="kt-date" class="text-[10px] text-gray-400 mt-2 font-medium">...</p>
+                    </div>
+                </div>
+
+                <div class="w-full border-b-2 border-dashed border-gray-200 mb-6"></div>
+
+                <div class="mb-6">
+                    <span class="text-[10px] text-brand-500 font-bold uppercase tracking-wider mb-3 block">Rincian Transaksi Belum Lunas</span>
+                    <div id="kt-items" class="space-y-1">
+                        </div>
+                </div>
+
+                <div class="w-full border-b-2 border-dashed border-gray-200 mb-6"></div>
+
+                <div class="flex flex-col gap-2 bg-red-50/60 p-4 rounded-2xl border border-red-100 mb-8">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-brand-700 font-bold uppercase">TOTAL TAGIHAN</span>
+                        <span id="kt-total" class="text-sm font-bold text-brand-900">...</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-brand-700 font-bold uppercase">SUDAH DIBAYAR</span>
+                        <span id="kt-paid" class="text-sm font-bold text-green-600">...</span>
+                    </div>
+                    <div class="w-full border-b border-dashed border-red-200 my-1"></div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-sm text-red-700 font-extrabold uppercase tracking-wider">SISA TAGIHAN</span>
+                        <span id="kt-sisa" class="text-2xl font-black text-red-600">...</span>
+                    </div>
+                </div>
+
+                <div class="text-center pb-2">
+                    <p class="text-[10px] text-gray-400 mt-1.5">Terima kasih atas kepercayaannya.</p>
+                </div>
+            </div> 
+
+            <div class="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
+                <button onclick="downloadKreditTicket()" id="btn-download-kt" class="w-full bg-brand-500 hover:bg-brand-600 text-white text-sm font-extrabold py-4 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md">
+                    <i class="fas fa-file-arrow-down"></i>
+                    <span>SIMPAN TAGIHAN (DOWNLOAD)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="ticket-modal" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
         <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95vh] shadow-2xl transform scale-95 transition-transform duration-300" id="ticket-modal-content">
             
