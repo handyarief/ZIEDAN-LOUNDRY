@@ -8,7 +8,6 @@ const services = [
 ];
 
 // --- KONFIGURASI SUPABASE ---
-// CATATAN DEV: Menggunakan Legacy anon public key (JWT) yang valid untuk otorisasi database frontend
 const SUPABASE_URL = 'https://qgezrmiuwkmwfglblqet.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZXpybWl1d2ttd2ZnbGJscWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDk5NzAsImV4cCI6MjA4NzE4NTk3MH0.qxd3eTWFfQC6QEl56xzvJFHcmAO7gqsx17cEaCTkkRg';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -27,18 +26,20 @@ let allOrders = [];
 let currentOrderId = null;
 
 // --- HELPER FUNGSI TANGGAL (BARU) ---
-// Memastikan tampilan di layar tetap format Indonesia, meskipun di DB disimpen standar ISO
 function formatTanggalLokal(isoString) {
     try {
         const d = new Date(isoString);
-        if (isNaN(d.getTime())) return isoString; // Fallback jika data lama bukan ISO
-        return d.toLocaleString('id-ID');
+        if (isNaN(d.getTime())) return isoString; 
+        
+        // Format premium untuk nota
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return d.toLocaleDateString('id-ID', options);
     } catch (e) {
         return isoString;
     }
 }
 
-// --- FIX: HELPER BACA & TULIS LOKAL STORAGE ---
+// --- HELPER BACA & TULIS LOKAL STORAGE ---
 function getLocalOrders() {
     try {
         const raw = localStorage.getItem(LS_ORDERS_KEY);
@@ -73,8 +74,7 @@ function savePendingOrders(orders) {
     }
 }
 
-// --- FIX: SINKRONISASI PENDING ORDERS KE SUPABASE ---
-// Dipanggil saat aplikasi online, mencoba upload ulang data yang gagal sebelumnya
+// --- SINKRONISASI PENDING ORDERS KE SUPABASE ---
 async function syncPendingOrders() {
     const pending = getPendingOrders();
     if (pending.length === 0) return;
@@ -84,12 +84,10 @@ async function syncPendingOrders() {
 
     for (const order of pending) {
         try {
-            // Pastikan items terformat JSON string saat upload
             const orderToUpload = {
                 ...order,
                 items: typeof order.items === 'string' ? order.items : JSON.stringify(order.items)
             };
-            // Hapus field lokal sebelum upload
             delete orderToUpload._localId;
             delete orderToUpload._isPending;
 
@@ -108,7 +106,6 @@ async function syncPendingOrders() {
     savePendingOrders(stillPending);
 
     if (stillPending.length < pending.length) {
-        // Ada yang berhasil di-sync, refresh data
         fetchOrders();
     }
 }
@@ -123,48 +120,29 @@ async function fetchOrders() {
         
         if (error) {
             console.error("Error fetching orders:", error);
-            // FIX: Fallback ke data lokal jika server gagal
             const localOrders = getLocalOrders();
             const pendingOrders = getPendingOrders();
-            // Gabungkan: pending (belum ter-upload) + local cache dari server
             const merged = [...pendingOrders.map(o => ({...o, _isPending: true})), ...localOrders];
-            // Deduplicate berdasarkan _localId atau id
             allOrders = merged;
             
-            if (!document.getElementById('view-orders').classList.contains('hidden')) {
-                renderOrderList();
-            }
-            if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
-                renderKreditList();
-            }
+            if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
+            if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
             return;
         }
 
         allOrders = data || [];
-        
-        // FIX: Cache data server ke localStorage sebagai backup
         saveLocalOrders(allOrders);
         
-        // Update UI jika sedang berada di halaman yang relevan
-        if (!document.getElementById('view-orders').classList.contains('hidden')) {
-            renderOrderList();
-        }
-        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
-            renderKreditList();
-        }
+        if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
+        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     } catch (err) {
         console.error("Network error saat mengambil data:", err);
-        // FIX: Fallback ke data lokal cache jika network error
         const localOrders = getLocalOrders();
         const pendingOrders = getPendingOrders();
         allOrders = [...pendingOrders.map(o => ({...o, _isPending: true})), ...localOrders];
         
-        if (!document.getElementById('view-orders').classList.contains('hidden')) {
-            renderOrderList();
-        }
-        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
-            renderKreditList();
-        }
+        if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
+        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     }
 }
 
@@ -198,9 +176,7 @@ function initApp() {
         state.quantities[srv.id] = 1;
     });
     hitungTotal();
-    fetchOrders(); // Load data dari database saat aplikasi dibuka
-    
-    // FIX: Coba sync pending orders setelah app init
+    fetchOrders(); 
     setTimeout(() => syncPendingOrders(), 2000);
 }
 
@@ -271,7 +247,8 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
-// --- FIX UTAMA: SIMPAN KE SUPABASE + FALLBACK LOKAL ---
+
+// --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
     const wa = document.getElementById('custWa').value.trim();
@@ -286,13 +263,11 @@ async function prosesPesanan() {
         return;
     }
     
-    // Loading UI
     const btnSimpan = document.querySelector('#footer-total button');
     const originalText = btnSimpan.innerHTML;
     btnSimpan.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i><span>MENYIMPAN...</span>';
     btnSimpan.disabled = true;
 
-    // FIX 1: Susun items sebagai array JS — supabase-js v2 handles serialisasi otomatis ke jsonb
     const itemsArray = state.selectedServiceIds.map(id => {
         const srv = services.find(s => s.id === id);
         return { name: srv.name, qty: state.quantities[id], unit: srv.unit, price: srv.price };
@@ -308,7 +283,6 @@ async function prosesPesanan() {
         total: state.total
     };
 
-    // FIX 2: Coba insert ke Supabase dulu
     try {
         const { data, error } = await supabaseClient
             .from('orders')
@@ -316,29 +290,11 @@ async function prosesPesanan() {
             .select();
 
         if (error) {
-            // FIX 3: Pesan error lebih informatif dengan hint solusi
             let errorMsg = error.message || error.details || JSON.stringify(error);
-            let hint = '';
-
-            if (error.code === '42501' || (errorMsg && errorMsg.toLowerCase().includes('row-level security'))) {
-                hint = '\n\n💡 SOLUSI: Aktifkan INSERT policy untuk role "anon" di Supabase Dashboard → Authentication → Policies → tabel "orders".';
-            } else if (error.code === 'PGRST116' || (errorMsg && errorMsg.toLowerCase().includes('not found'))) {
-                hint = '\n\n💡 SOLUSI: Tabel "orders" tidak ditemukan. Pastikan tabel sudah dibuat di Supabase.';
-            } else if (errorMsg && errorMsg.toLowerCase().includes('invalid input syntax')) {
-                hint = '\n\n💡 SOLUSI: Tipe kolom "items" di database harus diset ke "jsonb".';
-            }
-
             console.error("Insert error detail:", error);
 
-            // FIX 4: Simpan lokal sebagai fallback jika server gagal
             const localId = 'local_' + Date.now();
-            const localOrder = {
-                ...newOrder,
-                id: localId,
-                _localId: localId,
-                _isPending: true,
-                items: itemsArray
-            };
+            const localOrder = { ...newOrder, id: localId, _localId: localId, _isPending: true, items: itemsArray };
 
             const pending = getPendingOrders();
             pending.unshift(localOrder);
@@ -350,35 +306,21 @@ async function prosesPesanan() {
             switchToOrders();
             resetForm();
 
-            alert(
-                "⚠️ GAGAL MENYIMPAN KE SERVER!\n\n" +
-                "Pesanan disimpan sementara di perangkat ini dan akan otomatis di-upload saat server kembali normal.\n\n" +
-                "Detail Error:\n" + errorMsg + hint
-            );
-
+            alert("⚠️ GAGAL MENYIMPAN KE SERVER!\nPesanan disimpan sementara di perangkat ini.");
         } else {
-            // Optimistic UI Update
             if (data && data.length > 0) {
                 allOrders.unshift(data[0]);
                 saveLocalOrders(allOrders);
             }
-            
             switchToOrders(); 
             resetForm();
             fetchOrders(); 
         }
     } catch (err) {
-        // FIX 5: Network error — simpan lokal + tampilkan pesan jelas
         console.error("Network/System error saat insert:", err);
 
         const localId = 'local_' + Date.now();
-        const localOrder = {
-            ...newOrder,
-            id: localId,
-            _localId: localId,
-            _isPending: true,
-            items: itemsArray
-        };
+        const localOrder = { ...newOrder, id: localId, _localId: localId, _isPending: true, items: itemsArray };
 
         const pending = getPendingOrders();
         pending.unshift(localOrder);
@@ -390,14 +332,7 @@ async function prosesPesanan() {
         switchToOrders();
         resetForm();
 
-        alert(
-            "📶 TIDAK DAPAT TERHUBUNG KE SERVER!\n\n" +
-            "Pesanan disimpan sementara di perangkat ini.\n" +
-            "Akan otomatis di-upload ke server saat koneksi pulih.\n\n" +
-            "Pastikan:\n" +
-            "• Koneksi internet aktif\n" +
-            "• Proyek Supabase tidak dalam status pause (cek di dashboard)"
-        );
+        alert("📶 TIDAK DAPAT TERHUBUNG KE SERVER!\nPesanan disimpan sementara di perangkat ini.");
     } finally {
         btnSimpan.innerHTML = originalText;
         btnSimpan.disabled = false;
@@ -438,12 +373,9 @@ function switchToKredit() {
     renderKreditList(); 
 }
 
-// --- FUNGSI HAPUS PESANAN (BARU) ---
+// --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
-    // Stop event bubbling agar tidak membuka halaman detail
-    if (event) {
-        event.stopPropagation();
-    }
+    if (event) event.stopPropagation();
 
     const konfirmasi = confirm("Apakah Anda yakin ingin menghapus pesanan ini? Data yang dihapus tidak bisa dikembalikan.");
     if (!konfirmasi) return;
@@ -453,44 +385,35 @@ async function hapusPesanan(id, event) {
 
     const targetOrder = allOrders[orderIndex];
 
-    // 1. Hapus secara optimistik dari state lokal
     allOrders.splice(orderIndex, 1);
     saveLocalOrders(allOrders);
 
-    // Render ulang segera agar UI responsif
     renderOrderList();
     if (!document.getElementById('view-kredit').classList.contains('hidden')) {
         renderKreditList();
     }
 
-    // 2. Hapus dari sumber aslinya (Local Pending ATAU Supabase Server)
     if (targetOrder._isPending) {
-        // Hapus dari data yang menunggu sinkronisasi
         let pending = getPendingOrders();
         pending = pending.filter(o => o.id != id);
         savePendingOrders(pending);
     } else {
-        // Hapus dari database Supabase
         try {
-            const { error } = await supabaseClient
-                .from('orders')
-                .delete()
-                .eq('id', targetOrder.id);
-                
+            const { error } = await supabaseClient.from('orders').delete().eq('id', targetOrder.id);
             if (error) {
                 console.error("Gagal menghapus pesanan dari server:", error);
                 alert("Terjadi kesalahan saat menghapus data di server.");
-                // Jika mau revert data, panggil fetchOrders() lagi
                 fetchOrders();
             }
         } catch (err) {
             console.error("Error jaringan saat menghapus:", err);
             alert("Gagal terhubung ke server untuk menghapus data.");
-            fetchOrders(); // Sinkronkan kembali jika gagal
+            fetchOrders(); 
         }
     }
 }
-// --- RENDER ORDER LIST (DIPERBARUI) ---
+
+// --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
     if (allOrders.length === 0) {
@@ -503,14 +426,12 @@ function renderOrderList() {
         return;
     }
     container.innerHTML = allOrders.map((order, index) => {
-        // items bisa berupa string JSON (dari DB lama) atau array (dari state lokal)
         const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         let summaryService = itemsArray.length > 0 ? itemsArray[0].name : 'Layanan';
         if (itemsArray.length > 1) {
             summaryService += ` (+${itemsArray.length - 1})`;
         }
 
-        // Badge orange jika pesanan pending lokal, merah jika kredit
         let pendingBadge = order._isPending
             ? '<span class="w-2 h-2 rounded-full bg-orange-400 absolute top-2 right-2 shadow-sm" title="Menunggu upload ke server"></span>'
             : (order.payment === 'kredit' ? '<span class="w-2 h-2 rounded-full bg-red-400 absolute top-2 right-2 shadow-sm"></span>' : '');
@@ -531,10 +452,8 @@ function renderOrderList() {
             statusText = order._isPending ? "PENDING UPLOAD" : "BARU";
         }
 
-        // Gunakan string ID untuk onclick agar kompatibel dengan localId (string) dan DB id (number)
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
-        // UPDATE: Perubahan Grid dan Posisi Status
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
@@ -562,14 +481,11 @@ function renderOrderList() {
         `;
     }).join('');
 }
-
 function openOrderDetail(id) {
-    // FIX: Cari order dengan == agar kompatibel string & number id
     const order = allOrders.find(o => o.id == id);
     if (!order) return;
     currentOrderId = order.id;
 
-    // FIX: items bisa berupa string JSON atau array
     const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
 
     const detailName = document.getElementById('detail-name');
@@ -626,6 +542,7 @@ function openOrderDetail(id) {
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
+
 async function updatePayment(method) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);
@@ -639,7 +556,6 @@ async function updatePayment(method) {
         refreshPaymentUI(method);
         renderOrderList();
 
-        // FIX: Jika pesanan masih pending lokal, update lokal saja
         if (allOrders[orderIndex]._isPending) {
             saveLocalOrders(allOrders);
             const pending = getPendingOrders();
@@ -691,7 +607,6 @@ async function updateOrderStatus(status) {
         refreshPaymentUI(allOrders[orderIndex].payment);
         renderOrderList();
 
-        // FIX: Jika pesanan masih pending lokal, update lokal saja
         if (allOrders[orderIndex]._isPending) {
             saveLocalOrders(allOrders);
             const pending = getPendingOrders();
@@ -761,64 +676,84 @@ function closeTicketModal() {
     }, 300);
 }
 
-// --- PERBAIKAN UTAMA: RESOLUSI DOWNLOAD & FIX RENDER TEKS ---
+// --- FIX UTAMA: RESOLUSI DOWNLOAD & OFF-SCREEN RENDERING ---
 function downloadETicket() {
-    const ticketElement = document.getElementById('ticket-area');
+    const originalTicketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
     const originalContent = btnDownload.innerHTML;
     
-    btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses...</span>';
+    btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses Nota Premium...</span>';
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    // TAHAP 1: PRE-CAPTURE MANIPULATION
-    // Cari judul h1 yang menggunakan gradient transparan agar tidak "hilang/rusak" di hasil
-    const titleEl = ticketElement.querySelector('h1.text-transparent');
-    let originalClasses = "";
+    // TAHAP 1: BUAT KONTENER OFF-SCREEN (Clone di luar layar)
+    // Ini memastikan lebar selalu ideal (450px) dan tinggi fleksibel (tidak terpotong scroll)
+    const offScreenContainer = document.createElement('div');
+    offScreenContainer.style.position = 'absolute';
+    offScreenContainer.style.left = '-9999px';
+    offScreenContainer.style.top = '0';
+    offScreenContainer.style.width = '450px'; 
+    offScreenContainer.style.backgroundColor = '#ffffff'; // Warna dasar background solid
     
+    // TAHAP 2: CLONING ELEMEN NOTA
+    const clone = originalTicketElement.cloneNode(true);
+    
+    // Bersihkan batas tinggi dan overflow agar semua list tercetak
+    clone.style.height = 'auto';
+    clone.style.maxHeight = 'none';
+    clone.style.overflow = 'visible';
+    clone.classList.remove('overflow-y-auto');
+    // Tambah padding lega biar makin premium
+    clone.style.padding = '40px'; 
+
+    // TAHAP 3: HAPUS GRADIENT YG RAWAN GLITCH DI CANVAS
+    const titleEl = clone.querySelector('h1.text-transparent');
     if (titleEl) {
-        originalClasses = titleEl.className;
-        // Hapus styling gradient sementara dan jadikan teks berwarna solid (biru Ziedan)
         titleEl.classList.remove('text-transparent', 'bg-clip-text', 'bg-gradient-to-r', 'from-brand-700', 'via-brand-500', 'to-cyan-400');
-        titleEl.style.color = '#0ea5e9'; 
+        titleEl.style.color = '#0ea5e9'; // Ganti warna biru solid yg elegan
     }
 
-    // TAHAP 2: RENDER DENGAN HTML2CANVAS (Skala dinaikkan ke 3 untuk HD)
-    html2canvas(ticketElement, { 
+    offScreenContainer.appendChild(clone);
+    document.body.appendChild(offScreenContainer);
+
+    // TAHAP 4: RENDER DENGAN HTML2CANVAS (Skala 3 Untuk HD)
+    html2canvas(clone, { 
         scale: 3, 
         backgroundColor: "#ffffff", 
         useCORS: true,
-        allowTaint: true
+        allowTaint: true,
+        windowWidth: 450 // Paksa lebar render canvas
     })
     .then(canvas => {
-        // TAHAP 3: KEMBALIKAN UI SEPERTI SEMULA (Meskipun sudah dirender)
-        if (titleEl) {
-            titleEl.className = originalClasses;
-            titleEl.style.color = ''; 
-        }
+        // Hapus clone dari body setelah beres dirender
+        document.body.removeChild(offScreenContainer);
 
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
         
-        const image = canvas.toDataURL("image/png", 1.0);
+        // Simpan menggunakan format JPEG agar lebih aman, minim transparan error
+        const image = canvas.toDataURL("image/jpeg", 1.0);
         const link = document.createElement('a');
-        const randomId = Math.floor(Math.random() * 10000);
-        link.download = `E-Ticket-Ziedan-Laundry-${randomId}.png`;
+        
+        // Format Nama File Elegan: Nota-Ziedan-NamaPelanggan.jpg
+        const ticketNameEl = document.getElementById('ticket-name');
+        const custName = ticketNameEl ? ticketNameEl.innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase() : 'CUST';
+        
+        link.download = `NOTA-ZIEDAN-${custName}.jpg`;
         link.href = image;
         link.click();
     }).catch(error => {
-        // JIKA ERROR, TETAP KEMBALIKAN UI SEPERTI SEMULA
-        if (titleEl) {
-            titleEl.className = originalClasses;
-            titleEl.style.color = ''; 
+        // JIKA ERROR, CLEANUP DAN KEMBALIKAN UI
+        if(document.body.contains(offScreenContainer)) {
+            document.body.removeChild(offScreenContainer);
         }
 
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
         console.error("Gagal memproses E-Ticket: ", error);
-        alert("Terjadi kesalahan saat menyimpan E-Ticket. Pastikan browser mendukung fitur ini.");
+        alert("Terjadi kesalahan saat memproses E-Ticket. Memori HP mungkin tidak cukup, coba tutup aplikasi lain.");
     });
 }
 
@@ -885,7 +820,6 @@ function openKreditDetail(customerName) {
     let totalKreditAll = 0;
 
     customerOrders.forEach(order => {
-        // FIX: items bisa berupa string JSON atau array
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         let summaryService = itemsArr.length > 0 ? itemsArr.map(i => i.name).join(', ') : 'Layanan';
         totalKreditAll += order.total;

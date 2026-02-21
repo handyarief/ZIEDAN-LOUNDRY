@@ -9,7 +9,7 @@ body {
 
 /* --- SCROLLBAR MODIFIKASI --- */
 #main-content::-webkit-scrollbar,
-#ticket-area::-webkit-scrollbar { /* Tambahan untuk area Modal E-Ticket */
+#ticket-area::-webkit-scrollbar { 
     width: 4px;
 }
 #main-content::-webkit-scrollbar-track,
@@ -38,9 +38,7 @@ body {
     animation: fadeInUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* --- ORDER LIST ROW DESIGN (Update Utama) --- */
-
-/* Baris utama pesanan */
+/* --- ORDER LIST ROW DESIGN --- */
 .order-row {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -50,7 +48,6 @@ body {
     background-color: #f0f7ff;
 }
 
-/* Container Detail (Hidden by default) */
 .order-detail-container {
     max-height: 0;
     overflow: hidden;
@@ -58,9 +55,8 @@ body {
     opacity: 0;
 }
 
-/* State saat baris di-klik (Expanded) */
 .order-item-wrapper.expanded .order-detail-container {
-    max-height: 500px; /* Nilai aman untuk konten detail */
+    max-height: 500px; 
     opacity: 1;
     border-top: 1px dashed #e2e8f0;
     margin-top: 0.75rem;
@@ -71,7 +67,6 @@ body {
     background-color: #f8fafc;
 }
 
-/* Rotasi icon chevron saat expand */
 .order-item-wrapper.expanded .chevron-icon {
     transform: rotate(180deg);
 }
@@ -107,7 +102,7 @@ button {
     -webkit-backdrop-filter: blur(24px);
 }
 
-/* --- MODERN MENU BUTTON ANIMATION (UPDATED) --- */
+/* --- MODERN MENU BUTTON ANIMATION --- */
 #menu-btn.active .hamburger-line:nth-child(1) {
     transform: translateY(6.5px) rotate(45deg);
     width: 20px;
@@ -123,7 +118,7 @@ button {
     width: 20px;
 }
 
-/* --- MENU OVERLAY ANIMATION (NEW) --- */
+/* --- MENU OVERLAY ANIMATION --- */
 @keyframes slideUpCard {
     from {
         opacity: 0;
@@ -146,7 +141,7 @@ button {
 
 #menu-overlay:not(.hidden) .menu-card {
     animation: slideUpCard 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-    animation-delay: 0.05s; /* Sedikit delay agar overlay muncul duluan */
+    animation-delay: 0.05s; 
 }
 
 #main-content {
