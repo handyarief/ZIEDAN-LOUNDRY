@@ -246,7 +246,6 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
-
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
@@ -372,7 +371,6 @@ function switchToKredit() {
     renderKreditList(); 
 }
 
-// --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
 
@@ -570,6 +568,7 @@ async function updatePayment(method) {
         if (error) console.error("Error updating payment:", error);
     }
 }
+
 function refreshPaymentUI(paymentStatus) {
     const badgeDetail = document.getElementById('payment-badge');
     const badgeTicket = document.getElementById('ticket-payment-badge');
@@ -620,7 +619,6 @@ async function updateOrderStatus(status) {
         if (error) console.error("Error updating status:", error);
     }
 }
-
 function refreshStatusUI(status) {
     const btnProses = document.getElementById('btn-status-proses');
     const btnSelesai = document.getElementById('btn-status-selesai');
@@ -630,7 +628,7 @@ function refreshStatusUI(status) {
     const classInactive = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-400 font-bold text-xs transition-all active:scale-95";
 
     if (status === 'proses') {
-        btnProses.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-yellow-500 bg-yellow-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
+        btnProses.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-yellow-500 bg-yellow-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         btnSelesai.className = classInactive;
         if(ticketBadge) {
             ticketBadge.innerText = "PROSES";
@@ -638,7 +636,7 @@ function refreshStatusUI(status) {
         }
     } else if (status === 'selesai') {
         btnProses.className = classInactive;
-        btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
+        btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         if(ticketBadge) {
             ticketBadge.innerText = "SELESAI";
             ticketBadge.className = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
@@ -677,7 +675,6 @@ function closeTicketModal() {
     }, 300);
 }
 
-// --- FIX UTAMA: RESOLUSI DOWNLOAD & OFF-SCREEN RENDERING ---
 function downloadETicket() {
     const originalTicketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
@@ -687,57 +684,44 @@ function downloadETicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    // TAHAP 1: BUAT KONTENER OFF-SCREEN (Clone di luar layar)
-    // Ini memastikan lebar selalu ideal (450px) dan tinggi fleksibel (tidak terpotong scroll)
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '450px'; 
-    offScreenContainer.style.backgroundColor = '#ffffff'; // Warna dasar background solid
+    offScreenContainer.style.backgroundColor = '#ffffff'; 
     
-    // TAHAP 2: CLONING ELEMEN NOTA
     const clone = originalTicketElement.cloneNode(true);
-    
-    // Bersihkan batas tinggi dan overflow agar semua list tercetak
     clone.style.height = 'auto';
     clone.style.maxHeight = 'none';
     clone.style.overflow = 'visible';
     clone.classList.remove('overflow-y-auto');
-    // Tambah padding lega biar makin premium
     clone.style.padding = '40px'; 
 
-    // TAHAP 3: HAPUS GRADIENT YG RAWAN GLITCH DI CANVAS
     const titleEl = clone.querySelector('h1.text-transparent');
     if (titleEl) {
         titleEl.classList.remove('text-transparent', 'bg-clip-text', 'bg-gradient-to-r', 'from-brand-700', 'via-brand-500', 'to-cyan-400');
-        titleEl.style.color = '#0ea5e9'; // Ganti warna biru solid yg elegan
+        titleEl.style.color = '#0ea5e9'; 
     }
 
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    // TAHAP 4: RENDER DENGAN HTML2CANVAS (Skala 3 Untuk HD)
     html2canvas(clone, { 
         scale: 3, 
         backgroundColor: "#ffffff", 
         useCORS: true,
         allowTaint: true,
-        windowWidth: 450 // Paksa lebar render canvas
+        windowWidth: 450 
     })
     .then(canvas => {
-        // Hapus clone dari body setelah beres dirender
         document.body.removeChild(offScreenContainer);
-
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
         
-        // Simpan menggunakan format JPEG agar lebih aman, minim transparan error
         const image = canvas.toDataURL("image/jpeg", 1.0);
         const link = document.createElement('a');
-        
-        // Format Nama File Elegan: Nota-Ziedan-NamaPelanggan.jpg
         const ticketNameEl = document.getElementById('ticket-name');
         const custName = ticketNameEl ? ticketNameEl.innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase() : 'CUST';
         
@@ -745,16 +729,14 @@ function downloadETicket() {
         link.href = image;
         link.click();
     }).catch(error => {
-        // JIKA ERROR, CLEANUP DAN KEMBALIKAN UI
         if(document.body.contains(offScreenContainer)) {
             document.body.removeChild(offScreenContainer);
         }
-
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
         console.error("Gagal memproses E-Ticket: ", error);
-        alert("Terjadi kesalahan saat memproses E-Ticket. Memori HP mungkin tidak cukup, coba tutup aplikasi lain.");
+        alert("Terjadi kesalahan saat memproses E-Ticket.");
     });
 }
 
@@ -764,6 +746,7 @@ function closeOrderDetail() {
     document.getElementById('view-orders').classList.remove('hidden');
 }
 
+// --- PERBAIKAN RENDER KREDIT LIST (TUGAS UTAMA) ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
     const kreditOrders = allOrders.filter(o => o.payment === 'kredit');
@@ -792,15 +775,23 @@ function renderKreditList() {
     container.innerHTML = groupedArray.map((data, index) => {
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${data.displayName}')">
-            <div class="grid grid-cols-[30px_1fr_1fr_1.3fr] gap-2 items-center">
+            <div class="grid grid-cols-[25px_1.2fr_auto_0.8fr_1.1fr] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
-                <div class="flex flex-col items-start justify-center min-w-0 text-left">
-                    <span class="text-xs font-bold text-brand-900 truncate w-full">${data.displayName}</span>
-                    <span class="text-[8px] font-bold border px-1 py-0.5 rounded mt-0.5 w-max bg-red-50 text-red-600 border-red-100">BELUM LUNAS</span>
+                
+                <div class="flex items-center min-w-0 text-left pr-1">
+                    <span class="text-xs font-bold text-brand-900 leading-tight break-words w-full">${data.displayName}</span>
                 </div>
-                <span class="text-[11px] text-gray-500 font-bold text-center bg-gray-50 rounded-lg py-1 border border-gray-100">${data.transactionCount} Trans.</span>
+
+                <div class="flex items-center justify-center">
+                    <span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">BELUM LUNAS</span>
+                </div>
+
+                <div class="flex items-center justify-center">
+                    <span class="text-[10px] text-gray-500 font-bold bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 whitespace-nowrap">${data.transactionCount}x</span>
+                </div>
+                
                 <div class="flex items-center justify-end text-right">
-                    <span class="text-xs font-extrabold text-red-600">${formatRupiah(data.totalAmount)}</span>
+                    <span class="text-xs font-black text-red-600">${formatRupiah(data.totalAmount)}</span>
                 </div>
             </div>
         </div>
@@ -827,10 +818,10 @@ function openKreditDetail(customerName) {
         itemsHTML += `
             <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
                 <div class="flex flex-col min-w-0 pr-2">
-                    <span class="font-bold text-brand-900 truncate">${summaryService}</span>
+                    <span class="font-bold text-brand-900 break-words leading-tight">${summaryService}</span>
                     <span class="text-[10px] text-gray-400 mt-0.5"><i class="far fa-clock mr-1"></i>${formatTanggalLokal(order.date)}</span>
                 </div>
-                <span class="font-extrabold text-red-500 whitespace-nowrap">${formatRupiah(order.total)}</span>
+                <span class="font-extrabold text-red-500 whitespace-nowrap ml-2">${formatRupiah(order.total)}</span>
             </div>
         `;
     });
@@ -857,10 +848,8 @@ function resetForm() {
     services.forEach(srv => {
         const inputArea = document.getElementById(`input-area-${srv.id}`);
         const inputField = document.getElementById(`input-${srv.id}`);
-        
         if(inputArea) inputArea.classList.add('hidden');
         if(inputField) inputField.value = 1;
-        
         state.quantities[srv.id] = 1;
     });
     
@@ -876,5 +865,4 @@ function shakeElement(id) {
     }
 }
 
-// Inisialisasi Aplikasi
 initApp();

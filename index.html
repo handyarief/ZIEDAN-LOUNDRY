@@ -107,7 +107,6 @@
             </button>
         </div>
     </div>
-    
     <main class="flex-1 overflow-y-auto pt-28 pb-32 px-6 scroll-smooth z-10 print:pt-0 print:pb-0 print:px-0 print:overflow-visible" id="main-content">
         <div id="view-home" class="transition-all duration-300 print:hidden relative z-10">
             <section class="mb-8 animate-fade-in-up">
@@ -253,6 +252,7 @@
                 </div>
             </section>
         </div>
+
         <div id="view-orders" class="hidden transition-all duration-300 animate-fade-in-up print:hidden relative z-10">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="backToHome()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -286,15 +286,16 @@
                 <span class="text-[10px] font-bold text-red-500 bg-red-100 px-3 py-1 rounded-full">REKAP NAMA</span>
             </div>
 
-            <div class="grid grid-cols-[30px_1fr_1fr_1.3fr] gap-2 px-4 mb-2 text-[9px] font-black text-red-500 uppercase tracking-widest opacity-60">
+            <div class="grid grid-cols-[25px_1.2fr_auto_0.8fr_1.1fr] gap-2 px-4 mb-2 text-[9px] font-black text-red-500 uppercase tracking-widest opacity-60 items-center">
                 <span>#</span>
                 <span>Nama</span>
-                <span class="text-center">Jml Transaksi</span>
-                <span class="text-right">Total Kredit</span>
+                <span class="text-center">Status</span>
+                <span class="text-center">Trans.</span>
+                <span class="text-right">Total</span>
             </div>
 
             <div id="kredit-list" class="space-y-2">
-                </div>
+            </div>
         </div>
 
         <div id="view-kredit-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
@@ -308,7 +309,7 @@
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-red-200 mb-4 flex justify-between items-start">
                 <div class="min-w-0 pr-2">
                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Pelanggan</p>
-                    <h3 id="kredit-detail-name" class="text-base font-bold text-brand-900 leading-tight truncate">...</h3>
+                    <h3 id="kredit-detail-name" class="text-base font-bold text-brand-900 leading-tight break-words">...</h3>
                     <p id="kredit-detail-wa" class="text-xs text-brand-500 font-medium mt-1">...</p>
                 </div>
                 <div class="text-right flex flex-col items-end gap-2 shrink-0">
@@ -319,7 +320,7 @@
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-brand-100 mb-6">
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-3">Daftar Nota Kredit</p>
                 <div id="kredit-detail-items" class="space-y-0">
-                    </div>
+                </div>
                 <div class="w-full border-b border-dashed border-gray-200 my-4"></div>
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">TOTAL TAGIHAN</span>
@@ -327,7 +328,6 @@
                 </div>
             </div>
         </div>
-        
         <div id="view-order-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="closeOrderDetail()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -418,7 +418,7 @@
                 <div class="flex justify-between items-start mb-6">
                     <div class="flex flex-col">
                         <span class="text-[10px] text-brand-500 font-bold uppercase tracking-wider mb-1">Pelanggan</span>
-                        <h3 id="ticket-name" class="text-xl font-extrabold text-brand-900 leading-tight">...</h3>
+                        <h3 id="ticket-name" class="text-xl font-extrabold text-brand-900 leading-tight break-words">...</h3>
                         <p id="ticket-wa" class="text-sm text-brand-600 font-medium mt-1">...</p>
                         <p id="ticket-date" class="text-[10px] text-gray-400 mt-2 font-medium">...</p>
                     </div>
