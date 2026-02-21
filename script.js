@@ -13,6 +13,10 @@ const SUPABASE_URL = 'https://qgezrmiuwkmwfglblqet.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZXpybWl1d2ttd2ZnbGJscWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDk5NzAsImV4cCI6MjA4NzE4NTk3MH0.qxd3eTWFfQC6QEl56xzvJFHcmAO7gqsx17cEaCTkkRg';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// --- KONSTANTA LOKAL STORAGE ---
+const LS_ORDERS_KEY = 'ziedan_local_orders';
+const LS_PENDING_KEY = 'ziedan_pending_orders';
+
 // --- STATE MANAGEMENT ---
 let state = {
     selectedServiceIds: [], 
@@ -34,6 +38,81 @@ function formatTanggalLokal(isoString) {
     }
 }
 
+// --- FIX: HELPER BACA & TULIS LOKAL STORAGE ---
+function getLocalOrders() {
+    try {
+        const raw = localStorage.getItem(LS_ORDERS_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveLocalOrders(orders) {
+    try {
+        localStorage.setItem(LS_ORDERS_KEY, JSON.stringify(orders));
+    } catch (e) {
+        console.warn("Gagal menyimpan ke localStorage:", e);
+    }
+}
+
+function getPendingOrders() {
+    try {
+        const raw = localStorage.getItem(LS_PENDING_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function savePendingOrders(orders) {
+    try {
+        localStorage.setItem(LS_PENDING_KEY, JSON.stringify(orders));
+    } catch (e) {
+        console.warn("Gagal menyimpan pending orders:", e);
+    }
+}
+
+// --- FIX: SINKRONISASI PENDING ORDERS KE SUPABASE ---
+// Dipanggil saat aplikasi online, mencoba upload ulang data yang gagal sebelumnya
+async function syncPendingOrders() {
+    const pending = getPendingOrders();
+    if (pending.length === 0) return;
+
+    console.log(`Mencoba sync ${pending.length} pesanan pending ke server...`);
+    const stillPending = [];
+
+    for (const order of pending) {
+        try {
+            // Pastikan items terformat JSON string saat upload
+            const orderToUpload = {
+                ...order,
+                items: typeof order.items === 'string' ? order.items : JSON.stringify(order.items)
+            };
+            // Hapus field lokal sebelum upload
+            delete orderToUpload._localId;
+            delete orderToUpload._isPending;
+
+            const { error } = await supabaseClient.from('orders').insert([orderToUpload]).select();
+            if (error) {
+                console.warn("Gagal sync pending order:", error.message);
+                stillPending.push(order);
+            } else {
+                console.log("Pending order berhasil di-sync:", order.customer);
+            }
+        } catch (e) {
+            stillPending.push(order);
+        }
+    }
+
+    savePendingOrders(stillPending);
+
+    if (stillPending.length < pending.length) {
+        // Ada yang berhasil di-sync, refresh data
+        fetchOrders();
+    }
+}
+
 // --- FUNGSI FETCH DATA DARI SUPABASE ---
 async function fetchOrders() {
     try {
@@ -44,9 +123,27 @@ async function fetchOrders() {
         
         if (error) {
             console.error("Error fetching orders:", error);
+            // FIX: Fallback ke data lokal jika server gagal
+            const localOrders = getLocalOrders();
+            const pendingOrders = getPendingOrders();
+            // Gabungkan: pending (belum ter-upload) + local cache dari server
+            const merged = [...pendingOrders.map(o => ({...o, _isPending: true})), ...localOrders];
+            // Deduplicate berdasarkan _localId atau id
+            allOrders = merged;
+            
+            if (!document.getElementById('view-orders').classList.contains('hidden')) {
+                renderOrderList();
+            }
+            if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
+                renderKreditList();
+            }
             return;
         }
+
         allOrders = data || [];
+        
+        // FIX: Cache data server ke localStorage sebagai backup
+        saveLocalOrders(allOrders);
         
         // Update UI jika sedang berada di halaman yang relevan
         if (!document.getElementById('view-orders').classList.contains('hidden')) {
@@ -57,6 +154,17 @@ async function fetchOrders() {
         }
     } catch (err) {
         console.error("Network error saat mengambil data:", err);
+        // FIX: Fallback ke data lokal cache jika network error
+        const localOrders = getLocalOrders();
+        const pendingOrders = getPendingOrders();
+        allOrders = [...pendingOrders.map(o => ({...o, _isPending: true})), ...localOrders];
+        
+        if (!document.getElementById('view-orders').classList.contains('hidden')) {
+            renderOrderList();
+        }
+        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) {
+            renderKreditList();
+        }
     }
 }
 
@@ -91,6 +199,9 @@ function initApp() {
     });
     hitungTotal();
     fetchOrders(); // Load data dari database saat aplikasi dibuka
+    
+    // FIX: Coba sync pending orders setelah app init
+    setTimeout(() => syncPendingOrders(), 2000);
 }
 
 function toggleService(index) {
@@ -160,7 +271,8 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
-// --- UPDATE: SIMPAN KE SUPABASE (MODIFIED DENGAN FIX BUG GAGAL SIMPAN) ---
+
+// --- FIX UTAMA: SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
     const wa = document.getElementById('custWa').value.trim();
@@ -181,42 +293,112 @@ async function prosesPesanan() {
     btnSimpan.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i><span>MENYIMPAN...</span>';
     btnSimpan.disabled = true;
 
+    // FIX 1: Susun items sebagai array JS — supabase-js v2 handles serialisasi otomatis ke jsonb
+    const itemsArray = state.selectedServiceIds.map(id => {
+        const srv = services.find(s => s.id === id);
+        return { name: srv.name, qty: state.quantities[id], unit: srv.unit, price: srv.price };
+    });
+
     const newOrder = {
         customer: nama,
-        whatsapp: wa || null, // FIX 1: Kirim null jika kosong, hindari error validasi DB (empty string)
+        whatsapp: wa || null,
         date: new Date().toISOString(),
         payment: 'cash',
         status: 'baru', 
-        items: state.selectedServiceIds.map(id => {
-            const srv = services.find(s => s.id === id);
-            return { name: srv.name, qty: state.quantities[id], unit: srv.unit, price: srv.price };
-        }),
+        items: itemsArray,
         total: state.total
     };
 
+    // FIX 2: Coba insert ke Supabase dulu
     try {
-        // FIX 2: Tambahkan .select() agar Supabase me-return data yang di-insert beserta ID aslinya
-        const { data, error } = await supabaseClient.from('orders').insert([newOrder]).select();
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .insert([newOrder])
+            .select();
 
         if (error) {
+            // FIX 3: Pesan error lebih informatif dengan hint solusi
             let errorMsg = error.message || error.details || JSON.stringify(error);
-            alert("GAGAL MENYIMPAN KE SERVER!\n\nDetail Error:\n" + errorMsg);
+            let hint = '';
+
+            if (error.code === '42501' || (errorMsg && errorMsg.toLowerCase().includes('row-level security'))) {
+                hint = '\n\n💡 SOLUSI: Aktifkan INSERT policy untuk role "anon" di Supabase Dashboard → Authentication → Policies → tabel "orders".';
+            } else if (error.code === 'PGRST116' || (errorMsg && errorMsg.toLowerCase().includes('not found'))) {
+                hint = '\n\n💡 SOLUSI: Tabel "orders" tidak ditemukan. Pastikan tabel sudah dibuat di Supabase.';
+            } else if (errorMsg && errorMsg.toLowerCase().includes('invalid input syntax')) {
+                hint = '\n\n💡 SOLUSI: Tipe kolom "items" di database harus diset ke "jsonb".';
+            }
+
             console.error("Insert error detail:", error);
+
+            // FIX 4: Simpan lokal sebagai fallback jika server gagal
+            const localId = 'local_' + Date.now();
+            const localOrder = {
+                ...newOrder,
+                id: localId,
+                _localId: localId,
+                _isPending: true,
+                items: itemsArray
+            };
+
+            const pending = getPendingOrders();
+            pending.unshift(localOrder);
+            savePendingOrders(pending);
+
+            allOrders.unshift(localOrder);
+            saveLocalOrders(allOrders);
+
+            switchToOrders();
+            resetForm();
+
+            alert(
+                "⚠️ GAGAL MENYIMPAN KE SERVER!\n\n" +
+                "Pesanan disimpan sementara di perangkat ini dan akan otomatis di-upload saat server kembali normal.\n\n" +
+                "Detail Error:\n" + errorMsg + hint
+            );
+
         } else {
-            // FIX 3: Optimistic UI Update. Masukkan langsung data dari DB ke state lokal sebelum render.
+            // Optimistic UI Update
             if (data && data.length > 0) {
-                allOrders.unshift(data[0]); 
+                allOrders.unshift(data[0]);
+                saveLocalOrders(allOrders);
             }
             
             switchToOrders(); 
-            
-            // fetchOrders() dipanggil tanpa 'await' supaya jalan di background & tidak menahan render UI.
-            fetchOrders(); 
             resetForm();
+            fetchOrders(); 
         }
     } catch (err) {
-        alert("Gagal menyimpan pesanan. Cek koneksi internet.");
+        // FIX 5: Network error — simpan lokal + tampilkan pesan jelas
         console.error("Network/System error saat insert:", err);
+
+        const localId = 'local_' + Date.now();
+        const localOrder = {
+            ...newOrder,
+            id: localId,
+            _localId: localId,
+            _isPending: true,
+            items: itemsArray
+        };
+
+        const pending = getPendingOrders();
+        pending.unshift(localOrder);
+        savePendingOrders(pending);
+
+        allOrders.unshift(localOrder);
+        saveLocalOrders(allOrders);
+
+        switchToOrders();
+        resetForm();
+
+        alert(
+            "📶 TIDAK DAPAT TERHUBUNG KE SERVER!\n\n" +
+            "Pesanan disimpan sementara di perangkat ini.\n" +
+            "Akan otomatis di-upload ke server saat koneksi pulih.\n\n" +
+            "Pastikan:\n" +
+            "• Koneksi internet aktif\n" +
+            "• Proyek Supabase tidak dalam status pause (cek di dashboard)"
+        );
     } finally {
         btnSimpan.innerHTML = originalText;
         btnSimpan.disabled = false;
@@ -232,7 +414,6 @@ function switchToOrders() {
     const footer = document.getElementById('footer-total');
     if(footer) footer.classList.add('translate-y-full', 'opacity-0');
     
-    // UI langsung merender state lokal terbaru dari Optimistic UI
     renderOrderList(); 
 }
 
@@ -270,13 +451,18 @@ function renderOrderList() {
         return;
     }
     container.innerHTML = allOrders.map((order, index) => {
-        let summaryService = order.items && order.items.length > 0 ? order.items[0].name : 'Layanan';
-        if (order.items && order.items.length > 1) {
-            summaryService += ` (+${order.items.length - 1})`;
+        // FIX: items bisa berupa string JSON (dari DB lama) atau array (dari state lokal)
+        const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+        let summaryService = itemsArray.length > 0 ? itemsArray[0].name : 'Layanan';
+        if (itemsArray.length > 1) {
+            summaryService += ` (+${itemsArray.length - 1})`;
         }
-        let paymentDot = order.payment === 'kredit' 
-            ? '<span class="w-2 h-2 rounded-full bg-red-400 absolute top-2 right-2 shadow-sm"></span>' 
-            : '';
+
+        // FIX: Badge orange jika pesanan pending lokal, merah jika kredit
+        let pendingBadge = order._isPending
+            ? '<span class="w-2 h-2 rounded-full bg-orange-400 absolute top-2 right-2 shadow-sm" title="Menunggu upload ke server"></span>'
+            : (order.payment === 'kredit' ? '<span class="w-2 h-2 rounded-full bg-red-400 absolute top-2 right-2 shadow-sm"></span>' : '');
+
         let statusColor = "bg-yellow-50 text-yellow-600 border-yellow-100";
         let statusText = "PROSES";
         
@@ -290,12 +476,15 @@ function renderOrderList() {
             }
         } else if (order.status === 'baru') {
             statusColor = "bg-blue-50 text-blue-500 border-blue-100";
-            statusText = "BARU";
+            statusText = order._isPending ? "PENDING UPLOAD" : "BARU";
         }
 
+        // FIX: Gunakan string ID untuk onclick agar kompatibel dengan localId (string) dan DB id (number)
+        const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
+
         return `
-        <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-brand-100 mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${order.id})">
-            ${paymentDot}
+        <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
+            ${pendingBadge}
             <div class="grid grid-cols-[30px_1fr_1.2fr_1.3fr] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 <div class="flex flex-col items-start justify-center min-w-0 text-left">
@@ -312,10 +501,15 @@ function renderOrderList() {
         `;
     }).join('');
 }
+
 function openOrderDetail(id) {
-    const order = allOrders.find(o => o.id === id);
+    // FIX: Cari order dengan == agar kompatibel string & number id
+    const order = allOrders.find(o => o.id == id);
     if (!order) return;
-    currentOrderId = id;
+    currentOrderId = order.id;
+
+    // FIX: items bisa berupa string JSON atau array
+    const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
 
     const detailName = document.getElementById('detail-name');
     const detailWa = document.getElementById('detail-wa');
@@ -328,8 +522,8 @@ function openOrderDetail(id) {
     if(detailDate) detailDate.innerText = formatTanggalLokal(order.date);
     if(detailTotal) detailTotal.innerText = formatRupiah(order.total);
 
-    if(detailItems && order.items) {
-        detailItems.innerHTML = order.items.map(item => `
+    if(detailItems) {
+        detailItems.innerHTML = itemsArray.map(item => `
             <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
                 <div class="flex flex-col">
                     <span class="font-bold text-brand-900">${item.name}</span>
@@ -351,8 +545,8 @@ function openOrderDetail(id) {
     if(ticketDate) ticketDate.innerText = formatTanggalLokal(order.date);
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
-    if(ticketItems && order.items) {
-        ticketItems.innerHTML = order.items.map(item => `
+    if(ticketItems) {
+        ticketItems.innerHTML = itemsArray.map(item => `
             <div class="flex justify-between items-center text-xs text-gray-600 border-b border-gray-100 last:border-0 py-2">
                 <div class="flex flex-col">
                     <span class="font-bold text-brand-900">${item.name}</span>
@@ -374,7 +568,7 @@ function openOrderDetail(id) {
 
 async function updatePayment(method) {
     if (!currentOrderId) return;
-    const orderIndex = allOrders.findIndex(o => o.id === currentOrderId);
+    const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);
     if (orderIndex > -1) {
         if (allOrders[orderIndex].status === 'proses') {
             alert("Selesaikan pesanan terlebih dahulu untuk mengubah status pembayaran.");
@@ -384,6 +578,15 @@ async function updatePayment(method) {
         allOrders[orderIndex].payment = method;
         refreshPaymentUI(method);
         renderOrderList();
+
+        // FIX: Jika pesanan masih pending lokal, update lokal saja
+        if (allOrders[orderIndex]._isPending) {
+            saveLocalOrders(allOrders);
+            const pending = getPendingOrders();
+            const pi = pending.findIndex(o => o.id == currentOrderId);
+            if (pi > -1) { pending[pi].payment = method; savePendingOrders(pending); }
+            return;
+        }
         
         const { error } = await supabaseClient.from('orders').update({ payment: method }).eq('id', currentOrderId);
         if (error) console.error("Error updating payment:", error);
@@ -397,7 +600,7 @@ function refreshPaymentUI(paymentStatus) {
     const btnKredit = document.getElementById('btn-pay-kredit');
 
     if (!btnCash || !btnKredit) return;
-    const currentOrder = allOrders.find(o => o.id === currentOrderId);
+    const currentOrder = allOrders.find(o => o.id == currentOrderId);
     const isProses = currentOrder ? currentOrder.status === 'proses' : false;
     
     let baseBtnClassActive = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs transition-all shadow-md ";
@@ -421,12 +624,21 @@ function refreshPaymentUI(paymentStatus) {
 
 async function updateOrderStatus(status) {
     if (!currentOrderId) return;
-    const orderIndex = allOrders.findIndex(o => o.id === currentOrderId);
+    const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);
     if (orderIndex > -1) {
         allOrders[orderIndex].status = status;
         refreshStatusUI(status);
         refreshPaymentUI(allOrders[orderIndex].payment);
-        renderOrderList(); 
+        renderOrderList();
+
+        // FIX: Jika pesanan masih pending lokal, update lokal saja
+        if (allOrders[orderIndex]._isPending) {
+            saveLocalOrders(allOrders);
+            const pending = getPendingOrders();
+            const pi = pending.findIndex(o => o.id == currentOrderId);
+            if (pi > -1) { pending[pi].status = status; savePendingOrders(pending); }
+            return;
+        }
         
         const { error } = await supabaseClient.from('orders').update({ status: status }).eq('id', currentOrderId);
         if (error) console.error("Error updating status:", error);
@@ -580,7 +792,9 @@ function openKreditDetail(customerName) {
     let totalKreditAll = 0;
 
     customerOrders.forEach(order => {
-        let summaryService = order.items && order.items.length > 0 ? order.items.map(i => i.name).join(', ') : 'Layanan';
+        // FIX: items bisa berupa string JSON atau array
+        const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+        let summaryService = itemsArr.length > 0 ? itemsArr.map(i => i.name).join(', ') : 'Layanan';
         totalKreditAll += order.total;
         itemsHTML += `
             <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
@@ -612,15 +826,14 @@ function resetForm() {
     state.quantities = {};
     state.total = 0;
     
-    // FIX 4: Pastikan nilai input di UI kembali ke 1 setelah form di-reset
     services.forEach(srv => {
         const inputArea = document.getElementById(`input-area-${srv.id}`);
         const inputField = document.getElementById(`input-${srv.id}`);
         
         if(inputArea) inputArea.classList.add('hidden');
-        if(inputField) inputField.value = 1; // Mengembalikan tampilan input ke default 1
+        if(inputField) inputField.value = 1;
         
-        state.quantities[srv.id] = 1; // Reset state kuantitas ke 1
+        state.quantities[srv.id] = 1;
     });
     
     updateServiceUI();
