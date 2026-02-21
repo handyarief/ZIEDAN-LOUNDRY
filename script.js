@@ -479,7 +479,6 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
-
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -846,9 +845,16 @@ function renderKreditList() {
     const groupedArray = Object.values(groupedKredit);
     container.innerHTML = groupedArray.map((data, index) => {
         const sisa = data.totalAmount - data.paidAmount;
-        if(sisa <= 0) return ''; // Sembunyikan jika sudah lunas tapi status belum terupdate
+        // PERBAIKAN: Menghapus guard clause agar riwayat yang sudah lunas (sisa <= 0) tetap tampil
 
         const nameStr = data.displayName.replace(/'/g, "\\'"); 
+        
+        // PERBAIKAN: Menambahkan Badge LUNAS jika sisa 0
+        let badgeSisaHtml = sisa <= 0 
+            ? `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-green-50 text-green-600 border-green-100 uppercase tracking-tighter whitespace-nowrap">LUNAS</span>`
+            : `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">SISA: ${formatRupiah(sisa)}</span>`;
+
+        // PERBAIKAN: Menghapus class 'line-through' (coret) pada total tagihan
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
             <div class="grid grid-cols-[25px_1fr_auto_45px_1fr_25px] gap-2 items-center">
@@ -859,7 +865,7 @@ function renderKreditList() {
                 </div>
 
                 <div class="flex items-center justify-center">
-                    <span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">SISA: ${formatRupiah(sisa)}</span>
+                    ${badgeSisaHtml}
                 </div>
 
                 <div class="flex items-center justify-center">
@@ -867,7 +873,7 @@ function renderKreditList() {
                 </div>
                 
                 <div class="flex items-center justify-end text-right">
-                    <span class="text-xs font-black text-gray-400 line-through">${formatRupiah(data.totalAmount)}</span>
+                    <span class="text-xs font-black text-gray-400">${formatRupiah(data.totalAmount)}</span>
                 </div>
 
                 <button onclick="hapusSemuaKreditPelanggan('${nameStr}', event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 transition-all ml-auto focus:outline-none" title="Hapus Semua Kredit ${data.displayName}">
@@ -903,7 +909,11 @@ function openKreditDetail(customerName) {
         totalPaidAll += (order.kredit_paid || 0);
         
         const sisaOrder = order.total - (order.kredit_paid || 0);
-        if(sisaOrder <= 0) return; // Skip item jika lunas
+        // PERBAIKAN: Menghapus guard clause agar item yang lunas tidak disembunyikan
+        
+        // PERBAIKAN: Membuat badge LUNAS di sebelah nama item jika sisa transaksi ini sudah 0
+        const isLunas = sisaOrder <= 0;
+        const statusLunasHtml = isLunas ? `<span class="inline-block ml-1 text-[8px] font-black bg-green-100 text-green-600 px-1 py-0.5 rounded uppercase">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
@@ -913,11 +923,11 @@ function openKreditDetail(customerName) {
             <div class="grid grid-cols-[20px_1.2fr_35px_40px_1fr_25px] gap-2 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
                 <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
                 <div class="flex flex-col min-w-0 pr-1">
-                    <span class="text-xs font-bold text-brand-900 leading-tight break-words">${item.name}</span>
+                    <span class="text-xs font-bold text-brand-900 leading-tight break-words">${item.name} ${statusLunasHtml}</span>
                 </div>
                 <span class="text-[9px] font-extrabold bg-brand-50 text-brand-900 px-1 py-1 rounded border border-brand-100 text-center whitespace-nowrap">${item.qty}${item.unit.toUpperCase()}</span>
                 <span class="text-[9px] text-gray-500 font-medium text-center leading-tight">${formatTanggalSingkat(order.date)}</span>
-                <span class="text-[11px] font-extrabold text-red-500 text-right">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="text-[11px] font-extrabold ${isLunas ? 'text-green-500' : 'text-red-500'} text-right">${formatRupiah(item.qty * (item.price || 0))}</span>
                 
                 <button onclick="hapusPesanan(${idAttr}, event)" class="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Transaksi">
                     <i class="fas fa-times text-[10px] pointer-events-none"></i>
@@ -1015,10 +1025,8 @@ async function prosesBayarKredit() {
             order.kredit_paid = (order.kredit_paid || 0) + bayarUntukOrderIni;
             sisaBayarInput -= bayarUntukOrderIni;
 
-            // Jika lunas, otomatis ganti status payment jadi cash
-            if (order.kredit_paid >= order.total) {
-                order.payment = 'cash';
-            }
+            // PERBAIKAN: Menghapus logika otomatis merubah order.payment = 'cash' saat lunas
+            // Ini agar riwayat tetap terbaca sebagai transaksi kredit di menu kredit
 
             // Update ke LocalStorage & Pending
             saveLocalOrders(allOrders);
@@ -1027,13 +1035,13 @@ async function prosesBayarKredit() {
                 const pi = pending.findIndex(o => o.id == order.id);
                 if (pi > -1) { 
                     pending[pi].kredit_paid = order.kredit_paid; 
-                    pending[pi].payment = order.payment;
+                    // pending[pi].payment = order.payment; // dihapus
                     savePendingOrders(pending); 
                 }
             } else {
                 // Update ke Supabase
                 await supabaseClient.from('orders')
-                    .update({ kredit_paid: order.kredit_paid, payment: order.payment })
+                    .update({ kredit_paid: order.kredit_paid }) // parameter payment dihapus dari update
                     .eq('id', order.id);
             }
         }
@@ -1057,17 +1065,19 @@ function cetakRekapKredit() {
     let itemsHTML = '';
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
-        if(sisaOrder <= 0) return; 
+        // PERBAIKAN: Menghapus guard clause agar item di nota juga menampilkan yang lunas (sebagai rincian)
+        const isLunas = sisaOrder <= 0;
+        const tagLunas = isLunas ? ` <span style="color: #16a34a; font-weight: bold;">(LUNAS)</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
             itemsHTML += `
             <div class="flex justify-between items-center text-xs text-gray-600 border-b border-gray-100 last:border-0 py-2">
                 <div class="flex flex-col">
-                    <span class="font-bold text-brand-900">${item.name} (${item.qty}${item.unit})</span>
+                    <span class="font-bold text-brand-900">${item.name} (${item.qty}${item.unit})${tagLunas}</span>
                     <span class="text-[10px] text-gray-500">${formatTanggalSingkat(order.date)}</span>
                 </div>
-                <span class="font-extrabold text-brand-900">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="font-extrabold ${isLunas ? 'text-green-600 line-through opacity-70' : 'text-brand-900'}">${formatRupiah(item.qty * (item.price || 0))}</span>
             </div>
             `;
         });
