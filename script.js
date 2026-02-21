@@ -626,7 +626,6 @@ function openOrderDetail(id) {
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
-
 async function updatePayment(method) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);
@@ -682,6 +681,7 @@ function refreshPaymentUI(paymentStatus) {
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
     }
 }
+
 async function updateOrderStatus(status) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);
@@ -761,19 +761,46 @@ function closeTicketModal() {
     }, 300);
 }
 
+// --- PERBAIKAN UTAMA: RESOLUSI DOWNLOAD & FIX RENDER TEKS ---
 function downloadETicket() {
     const ticketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
     const originalContent = btnDownload.innerHTML;
+    
     btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses...</span>';
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    html2canvas(ticketElement, { scale: 2, backgroundColor: "#ffffff", useCORS: true })
+    // TAHAP 1: PRE-CAPTURE MANIPULATION
+    // Cari judul h1 yang menggunakan gradient transparan agar tidak "hilang/rusak" di hasil
+    const titleEl = ticketElement.querySelector('h1.text-transparent');
+    let originalClasses = "";
+    
+    if (titleEl) {
+        originalClasses = titleEl.className;
+        // Hapus styling gradient sementara dan jadikan teks berwarna solid (biru Ziedan)
+        titleEl.classList.remove('text-transparent', 'bg-clip-text', 'bg-gradient-to-r', 'from-brand-700', 'via-brand-500', 'to-cyan-400');
+        titleEl.style.color = '#0ea5e9'; 
+    }
+
+    // TAHAP 2: RENDER DENGAN HTML2CANVAS (Skala dinaikkan ke 3 untuk HD)
+    html2canvas(ticketElement, { 
+        scale: 3, 
+        backgroundColor: "#ffffff", 
+        useCORS: true,
+        allowTaint: true
+    })
     .then(canvas => {
+        // TAHAP 3: KEMBALIKAN UI SEPERTI SEMULA (Meskipun sudah dirender)
+        if (titleEl) {
+            titleEl.className = originalClasses;
+            titleEl.style.color = ''; 
+        }
+
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
+        
         const image = canvas.toDataURL("image/png", 1.0);
         const link = document.createElement('a');
         const randomId = Math.floor(Math.random() * 10000);
@@ -781,6 +808,12 @@ function downloadETicket() {
         link.href = image;
         link.click();
     }).catch(error => {
+        // JIKA ERROR, TETAP KEMBALIKAN UI SEPERTI SEMULA
+        if (titleEl) {
+            titleEl.className = originalClasses;
+            titleEl.style.color = ''; 
+        }
+
         btnDownload.innerHTML = originalContent;
         btnDownload.disabled = false;
         btnDownload.classList.remove('opacity-70');
