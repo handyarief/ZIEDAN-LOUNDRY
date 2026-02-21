@@ -67,6 +67,7 @@
             </button>
         </div>
     </header>
+    
     <div id="menu-overlay" class="fixed inset-0 bg-brand-900/40 backdrop-blur-md z-[55] hidden flex-col justify-end items-center print:hidden pb-8 px-4 transition-opacity duration-300">
         <div class="bg-white/95 backdrop-blur-xl w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-white transform translate-y-10 opacity-0 transition-all duration-500 menu-card flex flex-col gap-4">
             <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-1"></div>
@@ -106,6 +107,7 @@
             </button>
         </div>
     </div>
+    
     <main class="flex-1 overflow-y-auto pt-28 pb-32 px-6 scroll-smooth z-10 print:pt-0 print:pb-0 print:px-0 print:overflow-visible" id="main-content">
         
         <div id="view-home" class="transition-all duration-300 print:hidden relative z-10">
@@ -132,6 +134,7 @@
                     </div>
                 </div>
             </section>
+            
             <section class="mb-6 animate-fade-in-up" style="animation-delay: 0.1s;">
                 <div class="flex items-center justify-between mb-4 px-1">
                     <h2 class="text-sm font-bold text-brand-900">Pilih Layanan</h2>
@@ -261,12 +264,12 @@
                 <span class="text-[10px] font-bold text-brand-500 bg-brand-100 px-3 py-1 rounded-full">ADMIN MODE</span>
             </div>
 
-            <div class="grid grid-cols-[30px_1fr_1.2fr_1.3fr] gap-2 px-4 mb-2 text-[9px] font-black text-brand-500 uppercase tracking-widest opacity-60">
+            <div class="grid grid-cols-[25px_1.2fr_1fr_1fr_30px] gap-2 px-4 mb-2 text-[9px] font-black text-brand-500 uppercase tracking-widest opacity-60">
                 <span>#</span>
                 <span>Nama</span>
                 <span>Layanan</span>
                 <span class="text-right">Total</span>
-            </div>
+                <span></span> </div>
 
             <div id="order-list" class="space-y-2">
                 </div>
@@ -323,6 +326,7 @@
                 </div>
             </div>
         </div>
+        
         <div id="view-order-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="closeOrderDetail()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -390,6 +394,7 @@
         
         <div class="h-4"></div>
     </main>
+
     <div id="ticket-modal" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
         <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95vh] shadow-2xl transform scale-95 transition-transform duration-300" id="ticket-modal-content">
             
@@ -453,6 +458,7 @@
             </div>
         </div>
     </div>
+    
     <div id="footer-total" class="fixed bottom-6 w-[90%] left-1/2 -translate-x-1/2 bg-white/95 text-brand-900 rounded-[2.5rem] px-8 py-5 z-40 transition-all duration-500 shadow-glow border border-brand-100 backdrop-blur-xl">
         <div class="flex items-center justify-between gap-5">
             <div class="flex flex-col">
@@ -474,16 +480,13 @@
             const introVideo = document.getElementById('intro-video');
 
             if (introSplash && introVideo) {
-                // Saat video selesai, jalankan animasi fade out
                 introVideo.addEventListener('ended', () => {
                     introSplash.classList.add('opacity-0');
-                    // Hapus elemen dari flow dokumen setelah transisi selesai (1000ms sesuai class Tailwind)
                     setTimeout(() => {
                         introSplash.style.display = 'none';
                     }, 1000);
                 });
 
-                // Fallback: Jika video gagal diputar (misal limitasi browser), langsung hilangkan splash screen
                 introVideo.addEventListener('error', () => {
                     introSplash.style.display = 'none';
                 });

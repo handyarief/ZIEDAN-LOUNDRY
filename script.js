@@ -439,6 +439,60 @@ function switchToKredit() {
     renderKreditList(); 
 }
 
+// --- FUNGSI HAPUS PESANAN (BARU) ---
+async function hapusPesanan(id, event) {
+    // Stop event bubbling agar tidak membuka halaman detail
+    if (event) {
+        event.stopPropagation();
+    }
+
+    const konfirmasi = confirm("Apakah Anda yakin ingin menghapus pesanan ini? Data yang dihapus tidak bisa dikembalikan.");
+    if (!konfirmasi) return;
+
+    const orderIndex = allOrders.findIndex(o => o.id == id);
+    if (orderIndex === -1) return;
+
+    const targetOrder = allOrders[orderIndex];
+
+    // 1. Hapus secara optimistik dari state lokal
+    allOrders.splice(orderIndex, 1);
+    saveLocalOrders(allOrders);
+
+    // Render ulang segera agar UI responsif
+    renderOrderList();
+    if (!document.getElementById('view-kredit').classList.contains('hidden')) {
+        renderKreditList();
+    }
+
+    // 2. Hapus dari sumber aslinya (Local Pending ATAU Supabase Server)
+    if (targetOrder._isPending) {
+        // Hapus dari data yang menunggu sinkronisasi
+        let pending = getPendingOrders();
+        pending = pending.filter(o => o.id != id);
+        savePendingOrders(pending);
+    } else {
+        // Hapus dari database Supabase
+        try {
+            const { error } = await supabaseClient
+                .from('orders')
+                .delete()
+                .eq('id', targetOrder.id);
+                
+            if (error) {
+                console.error("Gagal menghapus pesanan dari server:", error);
+                alert("Terjadi kesalahan saat menghapus data di server.");
+                // Jika mau revert data, panggil fetchOrders() lagi
+                fetchOrders();
+            }
+        } catch (err) {
+            console.error("Error jaringan saat menghapus:", err);
+            alert("Gagal terhubung ke server untuk menghapus data.");
+            fetchOrders(); // Sinkronkan kembali jika gagal
+        }
+    }
+}
+
+// --- RENDER ORDER LIST (DIPERBARUI) ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
     if (allOrders.length === 0) {
@@ -451,14 +505,14 @@ function renderOrderList() {
         return;
     }
     container.innerHTML = allOrders.map((order, index) => {
-        // FIX: items bisa berupa string JSON (dari DB lama) atau array (dari state lokal)
+        // items bisa berupa string JSON (dari DB lama) atau array (dari state lokal)
         const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         let summaryService = itemsArray.length > 0 ? itemsArray[0].name : 'Layanan';
         if (itemsArray.length > 1) {
             summaryService += ` (+${itemsArray.length - 1})`;
         }
 
-        // FIX: Badge orange jika pesanan pending lokal, merah jika kredit
+        // Badge orange jika pesanan pending lokal, merah jika kredit
         let pendingBadge = order._isPending
             ? '<span class="w-2 h-2 rounded-full bg-orange-400 absolute top-2 right-2 shadow-sm" title="Menunggu upload ke server"></span>'
             : (order.payment === 'kredit' ? '<span class="w-2 h-2 rounded-full bg-red-400 absolute top-2 right-2 shadow-sm"></span>' : '');
@@ -479,29 +533,32 @@ function renderOrderList() {
             statusText = order._isPending ? "PENDING UPLOAD" : "BARU";
         }
 
-        // FIX: Gunakan string ID untuk onclick agar kompatibel dengan localId (string) dan DB id (number)
+        // Gunakan string ID untuk onclick agar kompatibel dengan localId (string) dan DB id (number)
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
-            <div class="grid grid-cols-[30px_1fr_1.2fr_1.3fr] gap-2 items-center">
+            <div class="grid grid-cols-[25px_1.2fr_1fr_1fr_30px] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 <div class="flex flex-col items-start justify-center min-w-0 text-left">
                     <span class="text-xs font-bold text-brand-900 truncate w-full">${order.customer}</span>
-                    <span class="text-[8px] font-bold border px-1 py-0.5 rounded mt-0.5 w-max ${statusColor}">${statusText}</span>
+                    <div class="mt-1">
+                        <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded-full inline-block whitespace-nowrap ${statusColor}">${statusText}</span>
+                    </div>
                 </div>
                 <span class="text-[11px] text-gray-500 truncate">${summaryService}</span>
                 <div class="flex items-center justify-end text-right">
                     <span class="text-xs font-extrabold text-brand-600">${formatRupiah(order.total)}</span>
-                    <i class="fas fa-chevron-right text-[10px] text-gray-300 ml-2"></i>
                 </div>
+                <button onclick="hapusPesanan(${idAttr}, event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Pesanan">
+                    <i class="fas fa-trash-alt text-xs pointer-events-none"></i>
+                </button>
             </div>
         </div>
         `;
     }).join('');
 }
-
 function openOrderDetail(id) {
     // FIX: Cari order dengan == agar kompatibel string & number id
     const order = allOrders.find(o => o.id == id);
