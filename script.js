@@ -412,7 +412,6 @@ async function hapusPesanan(id, event) {
         }
     }
 }
-
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -457,12 +456,15 @@ function renderOrderList() {
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
-            <div class="grid grid-cols-[25px_1fr_auto_1fr_30px] gap-2 items-center">
+            <div class="grid grid-cols-[25px_1.2fr_1fr_auto_1fr_30px] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
-                <div class="flex flex-col items-start justify-center min-w-0 text-left pr-2">
+                <div class="flex items-center min-w-0 text-left pr-1">
                     <span class="text-xs font-bold text-brand-900 truncate w-full">${order.customer}</span>
-                    <span class="text-[10px] text-gray-500 truncate w-full mt-0.5">${summaryService}</span>
+                </div>
+                
+                <div class="flex items-center min-w-0 text-left pr-1">
+                    <span class="text-[10px] text-gray-500 font-medium truncate w-full">${summaryService}</span>
                 </div>
                 
                 <div class="flex items-center justify-center">
@@ -481,6 +483,7 @@ function renderOrderList() {
         `;
     }).join('');
 }
+
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id == id);
     if (!order) return;
