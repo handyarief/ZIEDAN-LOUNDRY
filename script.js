@@ -92,6 +92,7 @@ function initApp() {
     hitungTotal();
     fetchOrders(); // Load data dari database saat aplikasi dibuka
 }
+
 function toggleService(index) {
     const serviceIndex = state.selectedServiceIds.indexOf(index);
     const inputArea = document.getElementById(`input-area-${index}`);
@@ -159,8 +160,7 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
-
-// --- UPDATE: SIMPAN KE SUPABASE (MODIFIED DENGAN TRY...CATCH) ---
+// --- UPDATE: SIMPAN KE SUPABASE (MODIFIED DENGAN TRY...CATCH & FIX LOGIKA RENDER) ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
     const wa = document.getElementById('custWa').value.trim();
@@ -204,9 +204,10 @@ async function prosesPesanan() {
             alert("GAGAL MENYIMPAN KE SERVER!\n\nDetail Error:\n" + errorMsg);
             console.error("Insert error detail:", error);
         } else {
-            // Sukses
-            await fetchOrders(); // Reload data
-            switchToOrders();
+            // FIX LOGIKA: Pindah halaman dulu SEBELUM menarik data
+            // Supaya saat data ditarik, fungsi render tidak diblokir oleh pengecekan halaman 'hidden'
+            switchToOrders(); 
+            await fetchOrders(); 
             resetForm();
         }
     } catch (err) {
@@ -228,6 +229,9 @@ function switchToOrders() {
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     const footer = document.getElementById('footer-total');
     if(footer) footer.classList.add('translate-y-full', 'opacity-0');
+    
+    // FIX PENGAMANAN UI: Selalu paksa render list tiap kali halaman Data Pesanan dibuka
+    renderOrderList(); 
 }
 
 function backToHome() {
@@ -248,6 +252,7 @@ function switchToKredit() {
     document.getElementById('view-kredit').classList.remove('hidden');
     const footer = document.getElementById('footer-total');
     if(footer) footer.classList.add('translate-y-full', 'opacity-0');
+    
     renderKreditList(); 
 }
 function renderOrderList() {
@@ -318,7 +323,6 @@ function openOrderDetail(id) {
 
     if(detailName) detailName.innerText = order.customer;
     if(detailWa) detailWa.innerText = order.whatsapp ? order.whatsapp : '-';
-    // UPDATE: Gunakan fungsi formatTanggalLokal
     if(detailDate) detailDate.innerText = formatTanggalLokal(order.date);
     if(detailTotal) detailTotal.innerText = formatRupiah(order.total);
 
@@ -342,7 +346,6 @@ function openOrderDetail(id) {
 
     if(ticketName) ticketName.innerText = order.customer;
     if(ticketWa) ticketWa.innerText = order.whatsapp ? order.whatsapp : '-';
-    // UPDATE: Gunakan fungsi formatTanggalLokal
     if(ticketDate) ticketDate.innerText = formatTanggalLokal(order.date);
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
@@ -367,7 +370,6 @@ function openOrderDetail(id) {
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
 
-// --- UPDATE: UBAH PAYMENT DI SUPABASE ---
 async function updatePayment(method) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id === currentOrderId);
@@ -377,12 +379,10 @@ async function updatePayment(method) {
             return;
         }
         
-        // Optimistic UI update
         allOrders[orderIndex].payment = method;
         refreshPaymentUI(method);
         renderOrderList();
         
-        // Update DB
         const { error } = await supabaseClient.from('orders').update({ payment: method }).eq('id', currentOrderId);
         if (error) console.error("Error updating payment:", error);
     }
@@ -417,22 +417,20 @@ function refreshPaymentUI(paymentStatus) {
     }
 }
 
-// --- UPDATE: UBAH STATUS DI SUPABASE ---
 async function updateOrderStatus(status) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id === currentOrderId);
     if (orderIndex > -1) {
-        // Optimistic UI update
         allOrders[orderIndex].status = status;
         refreshStatusUI(status);
         refreshPaymentUI(allOrders[orderIndex].payment);
         renderOrderList(); 
         
-        // Update DB
         const { error } = await supabaseClient.from('orders').update({ status: status }).eq('id', currentOrderId);
         if (error) console.error("Error updating status:", error);
     }
 }
+
 function refreshStatusUI(status) {
     const btnProses = document.getElementById('btn-status-proses');
     const btnSelesai = document.getElementById('btn-status-selesai');
