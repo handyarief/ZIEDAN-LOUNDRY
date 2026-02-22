@@ -523,7 +523,7 @@ function renderOrderList() {
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
-            <div class="grid grid-cols-[25px_1.2fr_1fr_55px_55px_30px] gap-2 items-center">
+            <div class="grid grid-cols-[18px_1.4fr_1fr_55px_55px_30px] gap-1.5 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
@@ -550,7 +550,6 @@ function renderOrderList() {
         `;
     }).join('');
 }
-
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id == id);
     if (!order) return;
@@ -850,7 +849,7 @@ function renderKreditList() {
 
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
-            <div class="grid grid-cols-[25px_1fr_60px_35px_55px_25px] gap-2 items-center">
+            <div class="grid grid-cols-[18px_1.2fr_60px_35px_55px_25px] gap-1.5 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
@@ -911,7 +910,7 @@ function openKreditDetail(customerName) {
 
         itemsArr.forEach(item => {
             itemsHTML += `
-            <div class="grid grid-cols-[20px_1.2fr_35px_40px_1fr_25px] gap-2 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
+            <div class="grid grid-cols-[16px_1.4fr_35px_40px_1fr_25px] gap-1.5 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
                 <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
                 <div class="flex flex-col min-w-0 pr-1">
                     <div class="flex items-start gap-1.5 flex-wrap">
@@ -952,7 +951,6 @@ function closeKreditDetail() {
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
 }
-
 // --- LOGIKA PEMBAYARAN KREDIT (MODAL & PROSES) ---
 function openModalBayarKredit() {
     document.getElementById('kredit-pay-sisa').innerText = formatRupiah(window.currentSisaKredit || 0);
