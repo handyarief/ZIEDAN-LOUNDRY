@@ -349,6 +349,7 @@ async function prosesPesanan() {
         btnSimpan.disabled = false;
     }
 }
+
 function switchToOrders() {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
@@ -382,6 +383,7 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
+
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -525,11 +527,11 @@ function renderOrderList() {
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-[11px] font-bold text-brand-900 leading-snug break-words w-full">${order.customer}</span>
+                    <span class="text-[10px] font-bold text-brand-900 leading-tight break-words w-full line-clamp-2">${order.customer}</span>
                 </div>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-[9px] text-gray-500 font-medium leading-snug break-words w-full">${summaryService}</span>
+                    <span class="text-[9px] text-gray-500 font-medium leading-tight break-words w-full line-clamp-2">${summaryService}</span>
                 </div>
                 
                 <div class="flex items-center justify-center">
@@ -537,7 +539,7 @@ function renderOrderList() {
                 </div>
                 
                 <div class="flex items-center justify-end text-right">
-                    <span class="text-xs font-extrabold text-brand-600">${formatRupiah(order.total)}</span>
+                    <span class="text-[11px] font-extrabold text-brand-600 whitespace-nowrap">${formatRupiah(order.total)}</span>
                 </div>
                 
                 <button onclick="hapusPesanan(${idAttr}, event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Pesanan">
@@ -719,6 +721,7 @@ function refreshStatusUI(status) {
         }
     }
 }
+
 function openTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
@@ -852,7 +855,7 @@ function renderKreditList() {
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-[11px] font-bold text-brand-900 leading-snug break-words w-full">${data.displayName}</span>
+                    <span class="text-[10px] font-bold text-brand-900 leading-tight break-words w-full line-clamp-2">${data.displayName}</span>
                 </div>
 
                 <div class="flex items-center justify-center">
@@ -864,7 +867,7 @@ function renderKreditList() {
                 </div>
                 
                 <div class="flex items-center justify-end text-right">
-                    <span class="text-xs font-black text-gray-400">${formatRupiah(data.totalAmount)}</span>
+                    <span class="text-[11px] font-black text-gray-400 whitespace-nowrap">${formatRupiah(data.totalAmount)}</span>
                 </div>
 
                 <button onclick="hapusSemuaKreditPelanggan('${nameStr}', event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 transition-all ml-auto focus:outline-none" title="Hapus Semua Kredit ${data.displayName}">
@@ -875,7 +878,6 @@ function renderKreditList() {
         `;
     }).join('');
 }
-
 // --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
@@ -1061,7 +1063,7 @@ function cetakRekapKredit() {
                     <span class="font-bold text-gray-800">${item.name} (${item.qty}${item.unit})${tagLunas}</span>
                     <span class="text-[10px] text-gray-500">${formatTanggalSingkat(order.date)}</span>
                 </div>
-                <span class="font-extrabold ${isLunas ? 'text-gray-400 line-through opacity-70' : 'text-gray-800'}">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="font-extrabold ${isLunas ? 'text-gray-500' : 'text-gray-800'} whitespace-nowrap">${formatRupiah(item.qty * (item.price || 0))}</span>
             </div>
             `;
         });
