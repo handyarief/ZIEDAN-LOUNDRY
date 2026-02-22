@@ -815,6 +815,7 @@ function closeOrderDetail() {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
 }
+
 // --- RENDER KREDIT LIST ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -847,13 +848,14 @@ function renderKreditList() {
 
         const nameStr = data.displayName.replace(/'/g, "\\'"); 
         
+        // PERBAIKAN: Menghilangkan string "SISA: " agar menyisakan nominal rupiahnya saja
         let badgeSisaHtml = sisa <= 0 
             ? `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-green-50 text-green-600 border-green-100 uppercase tracking-tighter whitespace-nowrap">LUNAS</span>`
-            : `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">SISA: ${formatRupiah(sisa)}</span>`;
+            : `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">${formatRupiah(sisa)}</span>`;
 
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
-            <div class="grid grid-cols-[25px_1fr_auto_45px_1fr_25px] gap-2 items-center">
+            <div class="grid grid-cols-[25px_1.5fr_auto_35px_auto_25px] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
@@ -869,7 +871,7 @@ function renderKreditList() {
                 </div>
                 
                 <div class="flex items-center justify-end text-right">
-                    <span class="text-[11px] font-black text-gray-400 whitespace-nowrap">${formatRupiah(data.totalAmount)}</span>
+                    <span class="text-[9px] font-black text-gray-400 whitespace-nowrap">${formatRupiah(data.totalAmount)}</span>
                 </div>
 
                 <button onclick="hapusSemuaKreditPelanggan('${nameStr}', event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 transition-all ml-auto focus:outline-none" title="Hapus Semua Kredit ${data.displayName}">
@@ -880,7 +882,6 @@ function renderKreditList() {
         `;
     }).join('');
 }
-
 // --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
