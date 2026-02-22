@@ -189,7 +189,6 @@ function initApp() {
     fetchOrders(); 
     setTimeout(() => syncPendingOrders(), 2000);
 }
-
 function toggleService(index) {
     const serviceIndex = state.selectedServiceIds.indexOf(index);
     const inputArea = document.getElementById(`input-area-${index}`);
@@ -508,18 +507,22 @@ function renderOrderList() {
         if (order.status === 'selesai') {
             if (order.payment === 'cash') {
                 statusColor = "bg-green-50 text-green-600 border-green-100";
-                statusText = "SELESAI CASH";
+                // PERBAIKAN: Memecah teks menjadi 2 baris agar layout tidak menyempit
+                statusText = "SELESAI<br>CASH";
             } else {
                 statusColor = "bg-red-50 text-red-600 border-red-100";
-                statusText = "SELESAI KREDIT";
+                // PERBAIKAN: Memecah teks menjadi 2 baris
+                statusText = "SELESAI<br>KREDIT";
             }
         } else if (order.status === 'baru') {
             statusColor = "bg-blue-50 text-blue-500 border-blue-100";
-            statusText = order._isPending ? "PENDING UPLOAD" : "BARU";
+            // PERBAIKAN: PENDING UPLOAD juga disesuaikan menjadi 2 baris demi konsistensi UI
+            statusText = order._isPending ? "PENDING<br>UPLOAD" : "BARU";
         }
 
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
+        // PERBAIKAN: Pada elemen span pembungkus statusText -> menghapus 'whitespace-nowrap rounded-full', dan menambahkan 'rounded-lg text-center leading-tight'
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
@@ -535,7 +538,7 @@ function renderOrderList() {
                 </div>
                 
                 <div class="flex items-center justify-center">
-                    <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded-full inline-block whitespace-nowrap ${statusColor}">${statusText}</span>
+                    <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded-lg inline-block text-center leading-tight ${statusColor}">${statusText}</span>
                 </div>
                 
                 <div class="flex items-center justify-end text-right">
@@ -812,7 +815,6 @@ function closeOrderDetail() {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
 }
-
 // --- RENDER KREDIT LIST ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -878,6 +880,7 @@ function renderKreditList() {
         `;
     }).join('');
 }
+
 // --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
