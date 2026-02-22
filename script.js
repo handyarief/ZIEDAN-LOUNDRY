@@ -189,6 +189,7 @@ function initApp() {
     fetchOrders(); 
     setTimeout(() => syncPendingOrders(), 2000);
 }
+
 function toggleService(index) {
     const serviceIndex = state.selectedServiceIds.indexOf(index);
     const inputArea = document.getElementById(`input-area-${index}`);
@@ -256,7 +257,6 @@ function hitungTotal() {
 function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
-
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
@@ -478,6 +478,7 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
+
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -507,26 +508,23 @@ function renderOrderList() {
         if (order.status === 'selesai') {
             if (order.payment === 'cash') {
                 statusColor = "bg-green-50 text-green-600 border-green-100";
-                // PERBAIKAN: Memecah teks menjadi 2 baris agar layout tidak menyempit
                 statusText = "SELESAI<br>CASH";
             } else {
                 statusColor = "bg-red-50 text-red-600 border-red-100";
-                // PERBAIKAN: Memecah teks menjadi 2 baris
                 statusText = "SELESAI<br>KREDIT";
             }
         } else if (order.status === 'baru') {
             statusColor = "bg-blue-50 text-blue-500 border-blue-100";
-            // PERBAIKAN: PENDING UPLOAD juga disesuaikan menjadi 2 baris demi konsistensi UI
             statusText = order._isPending ? "PENDING<br>UPLOAD" : "BARU";
         }
 
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
-        // PERBAIKAN: Pada elemen span pembungkus statusText -> menghapus 'whitespace-nowrap rounded-full', dan menambahkan 'rounded-lg text-center leading-tight'
+        // UPDATE: Kelas grid diganti & ukuran font total diganti menjadi text-[9px]
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
-            <div class="grid grid-cols-[25px_1fr_1.3fr_auto_1fr_30px] gap-2 items-center">
+            <div class="grid grid-cols-[25px_1.2fr_1fr_55px_55px_30px] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
@@ -542,7 +540,7 @@ function renderOrderList() {
                 </div>
                 
                 <div class="flex items-center justify-end text-right">
-                    <span class="text-[11px] font-extrabold text-brand-600 whitespace-nowrap">${formatRupiah(order.total)}</span>
+                    <span class="text-[9px] font-extrabold text-brand-600 whitespace-nowrap">${formatRupiah(order.total)}</span>
                 </div>
                 
                 <button onclick="hapusPesanan(${idAttr}, event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Pesanan">
@@ -754,7 +752,6 @@ function downloadETicket() {
     const btnDownload = document.getElementById('btn-download');
     const originalContent = btnDownload.innerHTML;
     
-    // UPDATE: Teks indikator loading diperbarui
     btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses Nota Bayar...</span>';
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
@@ -764,7 +761,7 @@ function downloadETicket() {
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '450px'; 
-    offScreenContainer.style.backgroundColor = '#fcfcfc'; // UPDATE: Menyesuaikan warna kertas nota baru
+    offScreenContainer.style.backgroundColor = '#fcfcfc'; 
     
     const clone = originalTicketElement.cloneNode(true);
     clone.style.height = 'auto';
@@ -778,7 +775,7 @@ function downloadETicket() {
 
     html2canvas(clone, { 
         scale: 3, 
-        backgroundColor: "#fcfcfc", // UPDATE: Background canvas disesuaikan
+        backgroundColor: "#fcfcfc",
         useCORS: true,
         allowTaint: true,
         windowWidth: 450 
@@ -794,7 +791,6 @@ function downloadETicket() {
         const ticketNameEl = document.getElementById('ticket-name');
         const custName = ticketNameEl ? ticketNameEl.innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase() : 'CUST';
         
-        // UPDATE: Penamaan file ekspor diubah menjadi NOTA-BAYAR
         link.download = `NOTA-BAYAR-ZIEDAN-${custName}.jpg`;
         link.href = image;
         link.click();
@@ -815,7 +811,6 @@ function closeOrderDetail() {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
 }
-
 // --- RENDER KREDIT LIST ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -848,14 +843,14 @@ function renderKreditList() {
 
         const nameStr = data.displayName.replace(/'/g, "\\'"); 
         
-        // PERBAIKAN: Menghilangkan string "SISA: " agar menyisakan nominal rupiahnya saja
         let badgeSisaHtml = sisa <= 0 
             ? `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-green-50 text-green-600 border-green-100 uppercase tracking-tighter whitespace-nowrap">LUNAS</span>`
             : `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">${formatRupiah(sisa)}</span>`;
 
+        // UPDATE: Kelas grid diganti agar presisi di tengah
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
-            <div class="grid grid-cols-[25px_1.5fr_auto_35px_auto_25px] gap-2 items-center">
+            <div class="grid grid-cols-[25px_1fr_60px_35px_55px_25px] gap-2 items-center">
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
@@ -882,6 +877,7 @@ function renderKreditList() {
         `;
     }).join('');
 }
+
 // --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
@@ -914,7 +910,6 @@ function openKreditDetail(customerName) {
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
         itemsArr.forEach(item => {
-            // UPDATE: Membungkus nama layanan dan badge Lunas dalam Flexbox agar posisinya selalu presisi dan tidak berantakan saat teks panjang
             itemsHTML += `
             <div class="grid grid-cols-[20px_1.2fr_35px_40px_1fr_25px] gap-2 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
                 <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
@@ -1056,7 +1051,6 @@ function cetakRekapKredit() {
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
-        // UPDATE: Warna disesuaikan dengan tema monokrom nota yang baru
         const tagLunas = isLunas ? ` <span style="color: #6b7280; font-weight: bold;">(LUNAS)</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
@@ -1115,7 +1109,7 @@ function downloadKreditTicket() {
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '450px'; 
-    offScreenContainer.style.backgroundColor = '#fcfcfc'; // UPDATE: Menyesuaikan dengan UI nota baru
+    offScreenContainer.style.backgroundColor = '#fcfcfc'; 
     
     const clone = originalElement.cloneNode(true);
     clone.style.height = 'auto';
@@ -1127,7 +1121,6 @@ function downloadKreditTicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    // UPDATE: Background disesuaikan menjadi #fcfcfc
     html2canvas(clone, { scale: 3, backgroundColor: "#fcfcfc", useCORS: true, allowTaint: true, windowWidth: 450 })
     .then(canvas => {
         document.body.removeChild(offScreenContainer);
@@ -1139,7 +1132,6 @@ function downloadKreditTicket() {
         const link = document.createElement('a');
         const custName = document.getElementById('kt-name').innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase();
         
-        // UPDATE: Penamaan Export File diperbarui
         link.download = `NOTA-TAGIHAN-KREDIT-${custName}.jpg`;
         link.href = image;
         link.click();
