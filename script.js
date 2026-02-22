@@ -382,7 +382,6 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
-
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -526,11 +525,11 @@ function renderOrderList() {
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-xs font-bold text-brand-900 leading-tight break-words w-full">${order.customer}</span>
+                    <span class="text-[11px] font-bold text-brand-900 leading-snug break-words w-full">${order.customer}</span>
                 </div>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-[10px] text-gray-500 font-medium leading-tight line-clamp-2 break-words w-full">${summaryService}</span>
+                    <span class="text-[9px] text-gray-500 font-medium leading-snug break-words w-full">${summaryService}</span>
                 </div>
                 
                 <div class="flex items-center justify-center">
@@ -720,7 +719,6 @@ function refreshStatusUI(status) {
         }
     }
 }
-
 function openTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
@@ -811,6 +809,7 @@ function closeOrderDetail() {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
 }
+
 // --- RENDER KREDIT LIST ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -853,7 +852,7 @@ function renderKreditList() {
                 <span class="text-xs font-bold text-gray-400">${index + 1}</span>
                 
                 <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-xs font-bold text-brand-900 leading-tight break-words w-full">${data.displayName}</span>
+                    <span class="text-[11px] font-bold text-brand-900 leading-snug break-words w-full">${data.displayName}</span>
                 </div>
 
                 <div class="flex items-center justify-center">
@@ -915,7 +914,7 @@ function openKreditDetail(customerName) {
                 <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
                 <div class="flex flex-col min-w-0 pr-1">
                     <div class="flex items-start gap-1.5 flex-wrap">
-                        <span class="text-xs font-bold text-brand-900 leading-tight break-words">${item.name}</span>
+                        <span class="text-[11px] font-bold text-brand-900 leading-snug break-words">${item.name}</span>
                         ${statusLunasHtml}
                     </div>
                 </div>
