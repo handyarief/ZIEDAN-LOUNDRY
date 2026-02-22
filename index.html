@@ -107,6 +107,7 @@
             </button>
         </div>
     </div>
+    
     <main class="flex-1 overflow-y-auto pt-28 pb-32 px-6 scroll-smooth z-10 print:pt-0 print:pb-0 print:px-0 print:overflow-visible" id="main-content">
         <div id="view-home" class="transition-all duration-300 print:hidden relative z-10">
             <section class="mb-8 animate-fade-in-up">
@@ -451,144 +452,160 @@
         </div>
     </div>
 
-    <div id="kredit-ticket-modal" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
-        <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95vh] shadow-2xl transform scale-95 transition-transform duration-300" id="kredit-ticket-modal-content">
-            <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white shrink-0">
-                <h3 class="font-bold text-sm text-gray-800"><i class="fas fa-file-invoice-dollar text-gray-500 mr-2"></i>Nota Tagihan Kredit</h3>
-                <button onclick="closeKreditTicketModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:text-red-500 shadow-sm transition-colors border border-gray-200">
+    <div id="kredit-ticket-modal" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-300 opacity-0 print:hidden">
+        <div class="bg-[#0f172a] rounded-3xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95vh] shadow-[0_0_40px_rgba(8,145,178,0.2)] transform scale-95 transition-transform duration-300 border border-slate-800" id="kredit-ticket-modal-content">
+            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm shrink-0">
+                <h3 class="font-bold text-sm text-cyan-400 tracking-wider uppercase"><i class="fas fa-file-invoice-dollar mr-2"></i>Nota Kredit</h3>
+                <button onclick="closeKreditTicketModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-gray-400 hover:text-cyan-400 transition-colors border border-slate-700">
                     <i class="fas fa-times text-sm"></i>
                 </button>
             </div>
             
-            <div class="overflow-y-auto p-6 bg-[#fcfcfc] relative w-full" id="kredit-ticket-area">
-                
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0 overflow-hidden">
-                    <span class="text-7xl font-black transform -rotate-45 text-gray-900 tracking-widest">TAGIHAN</span>
+            <div class="overflow-y-auto p-0 bg-[#0b1120] relative w-full" id="kredit-ticket-area">
+                <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center">
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#0b1120] to-[#0b1120]"></div>
+                    <img src="logo.jpg" class="w-[120%] opacity-[0.03] grayscale transform -rotate-12 mix-blend-screen">
                 </div>
 
-                <div class="relative z-10">
+                <div class="relative z-10 p-6">
                     <div class="flex flex-col items-center justify-center mb-6 text-center">
-                        <img src="logo.jpg" alt="Ziedan Laundry Logo" class="w-16 h-16 rounded-2xl object-cover border border-gray-200 mb-3 shadow-sm grayscale opacity-80">
-                        <h1 class="font-black text-2xl tracking-tighter text-gray-800 uppercase leading-none">ZIEDAN LAUNDRY</h1>
-                        <span class="text-[9px] text-gray-500 font-bold mt-1 tracking-widest uppercase">Premium Wash & Care</span>
-                        <div class="mt-3 bg-gray-800 text-white text-[10px] font-bold px-4 py-1.5 rounded uppercase tracking-widest shadow-sm">REKAP TAGIHAN</div>
+                        <div class="relative mb-4">
+                            <div class="absolute inset-0 bg-cyan-500 blur-xl opacity-20 rounded-full"></div>
+                            <img src="logo.jpg" alt="Logo" class="relative w-14 h-14 rounded-2xl object-cover border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                        </div>
+                        <h1 class="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500 uppercase leading-none drop-shadow-md">ZIEDAN LAUNDRY</h1>
+                        <span class="text-[8px] text-cyan-400/80 font-bold mt-1.5 tracking-[0.3em] uppercase">Premium Wash & Care</span>
+                        <div class="mt-4 bg-cyan-950/50 text-cyan-300 border border-cyan-800/50 text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.1)] backdrop-blur-sm">REKAP TAGIHAN</div>
                     </div>
 
-                    <div class="w-full border-b-2 border-dashed border-gray-300 mb-5"></div>
+                    <div class="flex items-center justify-center gap-2 mb-5 opacity-50">
+                        <div class="h-px bg-gradient-to-r from-transparent to-cyan-500/50 w-full"></div>
+                        <i class="fas fa-star text-[8px] text-cyan-500"></i>
+                        <div class="h-px bg-gradient-to-l from-transparent to-cyan-500/50 w-full"></div>
+                    </div>
 
                     <div class="flex justify-between items-start mb-5">
                         <div class="flex flex-col">
-                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Pelanggan</span>
-                            <h3 id="kt-name" class="text-lg font-black text-gray-800 leading-tight break-words uppercase">...</h3>
-                            <p id="kt-date" class="text-[10px] text-gray-500 mt-1 font-medium">...</p>
+                            <span class="text-[8px] text-slate-500 font-bold uppercase tracking-widest mb-1">Pelanggan</span>
+                            <h3 id="kt-name" class="text-base font-black text-white leading-tight break-words uppercase tracking-wide">...</h3>
+                            <p id="kt-date" class="text-[9px] text-cyan-500 mt-1 font-mono">...</p>
                         </div>
                     </div>
 
-                    <div class="w-full border-b-2 border-dashed border-gray-300 mb-5"></div>
+                    <div class="w-full border-b border-dashed border-slate-700 mb-5"></div>
 
                     <div class="mb-5">
-                        <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-2 block">Rincian Transaksi Belum Lunas</span>
-                        <div id="kt-items" class="space-y-1.5">
+                        <span class="text-[8px] text-slate-500 font-bold uppercase tracking-widest mb-3 block">Rincian Transaksi Belum Lunas</span>
+                        <div id="kt-items" class="space-y-2 text-gray-300">
                         </div>
                     </div>
 
-                    <div class="w-full border-b-2 border-dashed border-gray-300 mb-5"></div>
+                    <div class="w-full border-b border-dashed border-slate-700 mb-5"></div>
 
-                    <div class="flex flex-col gap-1.5 bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+                    <div class="flex flex-col gap-2 bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50 shadow-inner mb-6 backdrop-blur-md relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-blue-600"></div>
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] text-gray-500 font-bold uppercase">Total Tagihan</span>
-                            <span id="kt-total" class="text-xs font-bold text-gray-800">...</span>
+                            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Total Tagihan</span>
+                            <span id="kt-total" class="text-xs font-mono font-bold text-slate-300">...</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-[10px] text-gray-500 font-bold uppercase">Sudah Dibayar</span>
-                            <span id="kt-paid" class="text-xs font-bold text-gray-800">...</span>
+                            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Sudah Dibayar</span>
+                            <span id="kt-paid" class="text-xs font-mono font-bold text-slate-300">...</span>
                         </div>
-                        <div class="w-full border-b border-dashed border-gray-200 my-1.5"></div>
+                        <div class="w-full border-b border-dashed border-slate-600/50 my-1"></div>
                         <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-800 font-black uppercase tracking-wider">Sisa Tagihan</span>
-                            <span id="kt-sisa" class="text-xl font-black text-gray-900">...</span>
+                            <span class="text-[10px] text-cyan-400 font-black uppercase tracking-widest">Sisa Tagihan</span>
+                            <span id="kt-sisa" class="text-lg font-mono font-black text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]">...</span>
                         </div>
                     </div>
 
                     <div class="text-center pb-2">
-                        <p class="text-[9px] text-gray-400 font-medium uppercase tracking-wider">Terima kasih atas kepercayaannya</p>
+                        <p class="text-[8px] text-slate-500 font-medium uppercase tracking-[0.2em]">Terima kasih atas kepercayaannya</p>
                     </div>
                 </div>
             </div> 
 
-            <div class="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
-                <button onclick="downloadKreditTicket()" id="btn-download-kt" class="w-full bg-gray-800 hover:bg-gray-900 text-white text-sm font-extrabold py-4 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md">
-                    <i class="fas fa-file-arrow-down"></i>
-                    <span>SIMPAN TAGIHAN (DOWNLOAD)</span>
+            <div class="p-4 bg-slate-900 border-t border-slate-800 shrink-0">
+                <button onclick="downloadKreditTicket()" id="btn-download-kt" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-black py-4 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(8,145,178,0.3)] uppercase tracking-widest border border-cyan-400/20">
+                    <i class="fas fa-download"></i>
+                    <span>Simpan Tagihan</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="ticket-modal" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
-        <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95vh] shadow-2xl transform scale-95 transition-transform duration-300" id="ticket-modal-content">
+    <div id="ticket-modal" class="fixed inset-0 z-[70] hidden flex-col items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-opacity duration-300 opacity-0 print:hidden">
+        <div class="bg-[#0f172a] rounded-3xl w-full max-w-sm overflow-hidden flex flex-col max-h-[95vh] shadow-[0_0_40px_rgba(8,145,178,0.2)] transform scale-95 transition-transform duration-300 border border-slate-800" id="ticket-modal-content">
             
-            <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white shrink-0">
-                <h3 class="font-bold text-sm text-gray-800"><i class="fas fa-receipt text-gray-500 mr-2"></i>Nota Pembayaran</h3>
-                <button onclick="closeTicketModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-500 hover:text-red-500 shadow-sm transition-colors border border-gray-200">
+            <div class="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm shrink-0">
+                <h3 class="font-bold text-sm text-cyan-400 tracking-wider uppercase"><i class="fas fa-receipt mr-2"></i>Nota Pembayaran</h3>
+                <button onclick="closeTicketModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-gray-400 hover:text-cyan-400 transition-colors border border-slate-700">
                     <i class="fas fa-times text-sm"></i>
                 </button>
             </div>
             
-            <div class="overflow-y-auto p-6 bg-[#fcfcfc] relative w-full" id="ticket-area">
-                
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0 overflow-hidden">
-                    <img src="logo.jpg" class="w-[150%] grayscale transform -rotate-12">
+            <div class="overflow-y-auto p-0 bg-[#0b1120] relative w-full" id="ticket-area">
+                <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center">
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#0b1120] to-[#0b1120]"></div>
+                    <img src="logo.jpg" class="w-[120%] opacity-[0.03] grayscale transform -rotate-12 mix-blend-screen">
                 </div>
 
-                <div class="relative z-10">
+                <div class="relative z-10 p-6">
                     <div class="flex flex-col items-center justify-center mb-6 text-center">
-                        <img src="logo.jpg" alt="Ziedan Laundry Logo" class="w-16 h-16 rounded-2xl object-cover border border-gray-200 mb-3 shadow-sm grayscale opacity-80">
-                        <h1 class="font-black text-2xl tracking-tighter text-gray-800 uppercase leading-none">ZIEDAN LAUNDRY</h1>
-                        <span class="text-[9px] text-gray-500 font-bold mt-1 tracking-widest uppercase">Premium Wash & Care</span>
-                        <div class="mt-3 bg-gray-800 text-white text-[10px] font-bold px-4 py-1.5 rounded uppercase tracking-widest shadow-sm">BUKTI PEMBAYARAN</div>
+                        <div class="relative mb-4">
+                            <div class="absolute inset-0 bg-cyan-500 blur-xl opacity-20 rounded-full"></div>
+                            <img src="logo.jpg" alt="Logo" class="relative w-14 h-14 rounded-2xl object-cover border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                        </div>
+                        <h1 class="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500 uppercase leading-none drop-shadow-md">ZIEDAN LAUNDRY</h1>
+                        <span class="text-[8px] text-cyan-400/80 font-bold mt-1.5 tracking-[0.3em] uppercase">Premium Wash & Care</span>
+                        <div class="mt-4 bg-cyan-950/50 text-cyan-300 border border-cyan-800/50 text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.1)] backdrop-blur-sm">BUKTI PEMBAYARAN</div>
                     </div>
 
-                    <div class="w-full border-b-2 border-dashed border-gray-300 mb-5"></div>
+                    <div class="flex items-center justify-center gap-2 mb-5 opacity-50">
+                        <div class="h-px bg-gradient-to-r from-transparent to-cyan-500/50 w-full"></div>
+                        <i class="fas fa-star text-[8px] text-cyan-500"></i>
+                        <div class="h-px bg-gradient-to-l from-transparent to-cyan-500/50 w-full"></div>
+                    </div>
 
                     <div class="flex justify-between items-start mb-5">
                         <div class="flex flex-col">
-                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Pelanggan</span>
-                            <h3 id="ticket-name" class="text-lg font-black text-gray-800 leading-tight break-words uppercase">...</h3>
-                            <p id="ticket-wa" class="text-[10px] text-gray-500 font-medium mt-0.5">...</p>
-                            <p id="ticket-date" class="text-[10px] text-gray-400 mt-1 font-medium">...</p>
+                            <span class="text-[8px] text-slate-500 font-bold uppercase tracking-widest mb-1">Pelanggan</span>
+                            <h3 id="ticket-name" class="text-base font-black text-white leading-tight break-words uppercase tracking-wide">...</h3>
+                            <p id="ticket-wa" class="text-[9px] text-cyan-500/80 font-mono mt-0.5">...</p>
+                            <p id="ticket-date" class="text-[8px] text-slate-500 mt-1.5 font-mono">...</p>
                         </div>
-                        <div class="flex flex-col gap-1.5 items-end">
-                            <span id="ticket-payment-badge" class="text-[9px] bg-white text-gray-800 px-2 py-1 rounded border border-gray-300 font-bold uppercase tracking-wider text-center min-w-[60px] shadow-sm">CASH</span>
-                            <span id="ticket-status-badge" class="text-[9px] bg-white text-gray-800 px-2 py-1 rounded border border-gray-300 font-bold uppercase tracking-wider text-center min-w-[60px] shadow-sm">PROSES</span>
+                        <div class="flex flex-col gap-2 items-end">
+                            <span id="ticket-payment-badge" class="text-[8px] bg-slate-800/80 text-cyan-400 px-2.5 py-1 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm">CASH</span>
+                            <span id="ticket-status-badge" class="text-[8px] bg-slate-800/80 text-blue-400 px-2.5 py-1 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm">PROSES</span>
                         </div>
                     </div>
 
-                    <div class="w-full border-b-2 border-dashed border-gray-300 mb-5"></div>
+                    <div class="w-full border-b border-dashed border-slate-700 mb-5"></div>
 
                     <div class="mb-5">
-                        <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-2 block">Rincian Layanan</span>
-                        <div id="ticket-items" class="space-y-1.5">
+                        <span class="text-[8px] text-slate-500 font-bold uppercase tracking-widest mb-3 block">Rincian Layanan</span>
+                        <div id="ticket-items" class="space-y-2 text-gray-300">
                         </div>
                     </div>
 
-                    <div class="w-full border-b-2 border-dashed border-gray-300 mb-5"></div>
+                    <div class="w-full border-b border-dashed border-slate-700 mb-5"></div>
 
-                    <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
-                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">TOTAL TAGIHAN</span>
-                        <span id="ticket-total" class="text-xl font-black text-gray-800">...</span>
+                    <div class="flex justify-between items-center bg-cyan-950/20 p-4 rounded-2xl border border-cyan-500/20 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)] mb-6 backdrop-blur-md relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
+                        <span class="text-[9px] text-cyan-400 font-bold uppercase tracking-widest">Total Tagihan</span>
+                        <span id="ticket-total" class="text-lg font-mono font-black text-white drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">...</span>
                     </div>
 
                     <div class="text-center pb-2">
-                        <p class="text-[9px] text-gray-400 font-medium uppercase tracking-wider">Terima kasih atas kepercayaannya</p>
+                        <p class="text-[8px] text-slate-500 font-medium uppercase tracking-[0.2em]">Terima kasih atas kepercayaannya</p>
                     </div>
                 </div>
             </div> 
 
-            <div class="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
-                <button onclick="downloadETicket()" id="btn-download" class="w-full bg-gray-800 hover:bg-gray-900 text-white text-sm font-extrabold py-4 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md">
-                    <i class="fas fa-file-arrow-down"></i>
-                    <span>SIMPAN NOTA BAYAR (DOWNLOAD)</span>
+            <div class="p-4 bg-slate-900 border-t border-slate-800 shrink-0">
+                <button onclick="downloadETicket()" id="btn-download" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-black py-4 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(8,145,178,0.3)] uppercase tracking-widest border border-cyan-400/20">
+                    <i class="fas fa-download"></i>
+                    <span>Simpan Nota</span>
                 </button>
             </div>
         </div>

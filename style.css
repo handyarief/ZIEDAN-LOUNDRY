@@ -9,16 +9,20 @@ body {
 
 /* --- SCROLLBAR MODIFIKASI --- */
 #main-content::-webkit-scrollbar,
-#ticket-area::-webkit-scrollbar { 
+#ticket-area::-webkit-scrollbar,
+#kredit-ticket-area::-webkit-scrollbar { 
     width: 4px;
 }
 #main-content::-webkit-scrollbar-track,
-#ticket-area::-webkit-scrollbar-track {
+#ticket-area::-webkit-scrollbar-track,
+#kredit-ticket-area::-webkit-scrollbar-track {
     background: transparent;
 }
 #main-content::-webkit-scrollbar-thumb,
-#ticket-area::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 153, 238, 0.2);
+#ticket-area::-webkit-scrollbar-thumb,
+#kredit-ticket-area::-webkit-scrollbar-thumb {
+    /* UPDATE: Disesuaikan menjadi sedikit lebih cyan/neon agar selaras dengan tema dark futuristik */
+    background-color: rgba(34, 211, 238, 0.3);
     border-radius: 20px;
 }
 

@@ -520,7 +520,6 @@ function renderOrderList() {
 
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
-        // UPDATE: Kelas grid diganti & ukuran font total diganti menjadi text-[9px]
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
@@ -594,13 +593,14 @@ function openOrderDetail(id) {
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
     if(ticketItems) {
+        // UPDATE: Render item pada nota bergaya neon futuristik
         ticketItems.innerHTML = itemsArray.map(item => `
-            <div class="flex justify-between items-center text-xs text-gray-600 border-b border-gray-200 border-dashed last:border-0 py-2">
+            <div class="flex justify-between items-center text-[10px] text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2.5">
                 <div class="flex flex-col">
-                    <span class="font-bold text-gray-800">${item.name}</span>
-                    <span class="text-[10px] text-gray-500">@ ${formatRupiah(item.price || 0)}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide">${item.name}</span>
+                    <span class="text-[9px] text-cyan-500/80 font-mono mt-0.5">@ ${formatRupiah(item.price || 0)}</span>
                 </div>
-                <span class="font-extrabold bg-gray-100 text-gray-800 px-2 py-1 rounded border border-gray-200">${item.qty} ${item.unit}</span>
+                <span class="font-black bg-cyan-950/40 text-cyan-300 px-2.5 py-1 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest">${item.qty} ${item.unit.toUpperCase()}</span>
             </div>
         `).join('');
     }
@@ -657,13 +657,13 @@ function refreshPaymentUI(paymentStatus) {
     if (paymentStatus === 'cash') {
         const classLunas = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "CASH"; badgeDetail.className = classLunas; }
-        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[9px] bg-white text-gray-800 px-2 py-1 rounded border border-gray-300 font-bold uppercase tracking-wider text-center min-w-[60px] shadow-sm"; }
+        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[8px] bg-emerald-950/50 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassActive + disabledStateClass + "border-green-500 bg-green-500 text-white";
         btnKredit.className = baseBtnClassInactive + disabledStateClass;
     } else {
         const classKredit = "text-[10px] bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "KREDIT"; badgeDetail.className = classKredit; }
-        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[9px] bg-white text-gray-800 px-2 py-1 rounded border border-gray-300 font-bold uppercase tracking-wider text-center min-w-[60px] shadow-sm"; }
+        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[8px] bg-rose-950/50 text-rose-400 px-2.5 py-1 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassInactive + disabledStateClass;
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
     }
@@ -704,21 +704,21 @@ function refreshStatusUI(status) {
         btnSelesai.className = classInactive;
         if(ticketBadge) {
             ticketBadge.innerText = "PROSES";
-            ticketBadge.className = "text-[9px] bg-white text-gray-800 px-2 py-1 rounded border border-gray-300 font-bold uppercase tracking-wider text-center min-w-[60px] shadow-sm";
+            ticketBadge.className = "text-[8px] bg-blue-950/50 text-blue-400 px-2.5 py-1 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
         }
     } else if (status === 'selesai') {
         btnProses.className = classInactive;
         btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         if(ticketBadge) {
             ticketBadge.innerText = "SELESAI";
-            ticketBadge.className = "text-[9px] bg-white text-gray-800 px-2 py-1 rounded border border-gray-300 font-bold uppercase tracking-wider text-center min-w-[60px] shadow-sm";
+            ticketBadge.className = "text-[8px] bg-cyan-950/50 text-cyan-400 px-2.5 py-1 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
         }
     } else {
         btnProses.className = classInactive;
         btnSelesai.className = classInactive;
         if(ticketBadge) {
             ticketBadge.innerText = "BARU";
-            ticketBadge.className = "text-[9px] bg-white text-gray-800 px-2 py-1 rounded border border-gray-300 font-bold uppercase tracking-wider text-center min-w-[60px] shadow-sm";
+            ticketBadge.className = "text-[8px] bg-slate-800/80 text-slate-300 px-2.5 py-1 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
         }
     }
 }
@@ -761,7 +761,8 @@ function downloadETicket() {
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '450px'; 
-    offScreenContainer.style.backgroundColor = '#fcfcfc'; 
+    // UPDATE: Background disesuaikan ke dark blue agar canvas tidak clash dengan elemen putih
+    offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalTicketElement.cloneNode(true);
     clone.style.height = 'auto';
@@ -775,7 +776,7 @@ function downloadETicket() {
 
     html2canvas(clone, { 
         scale: 3, 
-        backgroundColor: "#fcfcfc",
+        backgroundColor: "#0b1120", // Background render dirubah menjadi gelap
         useCORS: true,
         allowTaint: true,
         windowWidth: 450 
@@ -847,7 +848,6 @@ function renderKreditList() {
             ? `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-green-50 text-green-600 border-green-100 uppercase tracking-tighter whitespace-nowrap">LUNAS</span>`
             : `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">${formatRupiah(sisa)}</span>`;
 
-        // UPDATE: Kelas grid diganti agar presisi di tengah
         return `
         <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
             <div class="grid grid-cols-[25px_1fr_60px_35px_55px_25px] gap-2 items-center">
@@ -1051,17 +1051,20 @@ function cetakRekapKredit() {
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
-        const tagLunas = isLunas ? ` <span style="color: #6b7280; font-weight: bold;">(LUNAS)</span>` : '';
+        
+        // UPDATE: Tag lunas bergaya badge neon
+        const tagLunas = isLunas ? ` <span class="text-[8px] bg-emerald-950/50 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
+            // UPDATE: Desain list item bergaya dark futuristic
             itemsHTML += `
-            <div class="flex justify-between items-center text-xs text-gray-600 border-b border-gray-200 border-dashed last:border-0 py-2">
+            <div class="flex justify-between items-center text-[10px] text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2.5">
                 <div class="flex flex-col">
-                    <span class="font-bold text-gray-800">${item.name} (${item.qty}${item.unit})${tagLunas}</span>
-                    <span class="text-[10px] text-gray-500">${formatTanggalSingkat(order.date)}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide">${item.name} <span class="text-cyan-500/80 font-mono">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
+                    <span class="text-[9px] text-slate-500 font-mono mt-0.5">${formatTanggalSingkat(order.date)}</span>
                 </div>
-                <span class="font-extrabold ${isLunas ? 'text-gray-500' : 'text-gray-800'} whitespace-nowrap">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="font-mono font-black ${isLunas ? 'text-slate-600 line-through' : 'text-cyan-300'} whitespace-nowrap">${formatRupiah(item.qty * (item.price || 0))}</span>
             </div>
             `;
         });
@@ -1109,7 +1112,8 @@ function downloadKreditTicket() {
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '450px'; 
-    offScreenContainer.style.backgroundColor = '#fcfcfc'; 
+    // UPDATE: Background disesuaikan ke dark blue
+    offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalElement.cloneNode(true);
     clone.style.height = 'auto';
@@ -1121,7 +1125,8 @@ function downloadKreditTicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    html2canvas(clone, { scale: 3, backgroundColor: "#fcfcfc", useCORS: true, allowTaint: true, windowWidth: 450 })
+    // UPDATE: backgroundColor diubah ke gelap saat dirender
+    html2canvas(clone, { scale: 3, backgroundColor: "#0b1120", useCORS: true, allowTaint: true, windowWidth: 450 })
     .then(canvas => {
         document.body.removeChild(offScreenContainer);
         btnDownload.innerHTML = originalContent;
