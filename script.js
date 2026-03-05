@@ -4,7 +4,8 @@ const services = [
     { id: 1, name: "Setrika Saja", price: 4000, unit: "kg" },
     { id: 2, name: "Bed Cover", price: 25000, unit: "pcs" },
     { id: 3, name: "Express Cuci Komplit", price: 10000, unit: "kg" },
-    { id: 4, name: "Express Setrika", price: 7000, unit: "kg" }
+    { id: 4, name: "Express Setrika", price: 7000, unit: "kg" },
+    { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" } // TAMBAHAN: Layanan Sprei Kasur
 ];
 
 // --- KONFIGURASI SUPABASE ---
@@ -155,7 +156,6 @@ async function fetchOrders() {
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     }
 }
-
 // --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -382,7 +382,6 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
-
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -550,6 +549,7 @@ function renderOrderList() {
         `;
     }).join('');
 }
+
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id == id);
     if (!order) return;
@@ -612,7 +612,6 @@ function openOrderDetail(id) {
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
-
 async function updatePayment(method) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);
