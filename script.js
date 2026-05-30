@@ -371,7 +371,6 @@ function backToHome() {
     const footer = document.getElementById('footer-total');
     if(footer) footer.classList.remove('translate-y-full', 'opacity-0');
 }
-
 function switchToKredit() {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.add('hidden');
@@ -613,6 +612,7 @@ function openOrderDetail(id) {
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
+
 async function updatePayment(method) {
     if (!currentOrderId) return;
     const orderIndex = allOrders.findIndex(o => o.id == currentOrderId);
@@ -746,6 +746,7 @@ function closeTicketModal() {
     }, 300);
 }
 
+// --- FUNGSI DOWNLOAD ETICKET (DIPERBARUI) ---
 function downloadETicket() {
     const originalTicketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
@@ -755,11 +756,12 @@ function downloadETicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
+    // 1. Buat Container Kloning sesuai resolusi Mobile (menjaga layout flex & grid)
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
-    offScreenContainer.style.width = '450px'; 
+    offScreenContainer.style.width = '360px'; // Set absolut di 360px agar proporsional
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalTicketElement.cloneNode(true);
@@ -767,67 +769,58 @@ function downloadETicket() {
     clone.style.maxHeight = 'none';
     clone.style.overflow = 'visible';
     clone.classList.remove('overflow-y-auto');
-    clone.style.padding = '40px'; 
+    clone.style.padding = '24px'; 
 
-    // --- INJEKSI PERBAIKAN UKURAN NOTA (Mulai) ---
-    let htmlString = clone.innerHTML;
-    
-    // Perbesar logo
-    htmlString = htmlString.replace(/w-14 h-14/g, 'w-24 h-24');
-    
-    // Perbesar teks
-    htmlString = htmlString.replace(/text-\[7px\]/g, 'text-[11px]');
-    htmlString = htmlString.replace(/text-\[8px\]/g, 'text-[12px]');
-    htmlString = htmlString.replace(/text-\[9px\]/g, 'text-[14px]');
-    htmlString = htmlString.replace(/text-\[10px\]/g, 'text-[16px]');
-    htmlString = htmlString.replace(/text-xs/g, 'text-lg');
-    htmlString = htmlString.replace(/text-sm/g, 'text-xl');
-    htmlString = htmlString.replace(/text-base/g, 'text-2xl');
-    htmlString = htmlString.replace(/text-lg/g, 'text-3xl');
-    htmlString = htmlString.replace(/text-2xl/g, 'text-4xl');
-    
-    // Penyesuaian margin/padding agar tidak terlalu rapat
-    htmlString = htmlString.replace(/mb-1\.5/g, 'mb-3');
-    htmlString = htmlString.replace(/mb-1/g, 'mb-2');
-    htmlString = htmlString.replace(/mt-1\.5/g, 'mt-3');
-    htmlString = htmlString.replace(/mt-1/g, 'mt-2');
-    
-    clone.innerHTML = htmlString;
-    // --- INJEKSI PERBAIKAN UKURAN NOTA (Selesai) ---
+    // 2. Perbaiki Efek CSS yang tidak disupport HTML2Canvas (Blur & Blend Mode)
+    const blurElements = clone.querySelectorAll('.blur-xl');
+    blurElements.forEach(el => {
+        el.classList.remove('blur-xl', 'bg-cyan-500', 'opacity-20');
+        el.style.boxShadow = '0 0 50px 20px rgba(6, 182, 212, 0.3)';
+        el.style.backgroundColor = 'transparent';
+    });
+
+    const mixBlendElements = clone.querySelectorAll('.mix-blend-screen');
+    mixBlendElements.forEach(el => {
+        el.classList.remove('mix-blend-screen');
+        el.style.opacity = '0.04'; // Set fallback transparan tanpa blend mode
+    });
 
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    html2canvas(clone, { 
-        scale: 3, 
-        backgroundColor: "#0b1120", 
-        useCORS: true,
-        allowTaint: true,
-        windowWidth: 450 
-    })
-    .then(canvas => {
-        document.body.removeChild(offScreenContainer);
-        btnDownload.innerHTML = originalContent;
-        btnDownload.disabled = false;
-        btnDownload.classList.remove('opacity-70');
-        
-        const image = canvas.toDataURL("image/jpeg", 1.0);
-        const link = document.createElement('a');
-        const ticketNameEl = document.getElementById('ticket-name');
-        const custName = ticketNameEl ? ticketNameEl.innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase() : 'CUST';
-        
-        link.download = `NOTA-BAYAR-ZIEDAN-${custName}.jpg`;
-        link.href = image;
-        link.click();
-    }).catch(error => {
-        if(document.body.contains(offScreenContainer)) {
+    // 3. Pastikan font sudah termuat dengan sempurna sebelum capture
+    document.fonts.ready.then(() => {
+        html2canvas(clone, { 
+            scale: 4, // Gunakan Scale 4 (Kualitas 4K, ukuran file tetap kecil)
+            backgroundColor: "#0b1120", 
+            useCORS: true,
+            allowTaint: true,
+            windowWidth: 360 
+        })
+        .then(canvas => {
             document.body.removeChild(offScreenContainer);
-        }
-        btnDownload.innerHTML = originalContent;
-        btnDownload.disabled = false;
-        btnDownload.classList.remove('opacity-70');
-        console.error("Gagal memproses Nota Bayar: ", error);
-        alert("Terjadi kesalahan saat memproses Nota Bayar.");
+            btnDownload.innerHTML = originalContent;
+            btnDownload.disabled = false;
+            btnDownload.classList.remove('opacity-70');
+            
+            const image = canvas.toDataURL("image/jpeg", 1.0);
+            const link = document.createElement('a');
+            const ticketNameEl = document.getElementById('ticket-name');
+            const custName = ticketNameEl ? ticketNameEl.innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase() : 'CUST';
+            
+            link.download = `NOTA-BAYAR-ZIEDAN-${custName}.jpg`;
+            link.href = image;
+            link.click();
+        }).catch(error => {
+            if(document.body.contains(offScreenContainer)) {
+                document.body.removeChild(offScreenContainer);
+            }
+            btnDownload.innerHTML = originalContent;
+            btnDownload.disabled = false;
+            btnDownload.classList.remove('opacity-70');
+            console.error("Gagal memproses Nota Bayar: ", error);
+            alert("Terjadi kesalahan saat memproses Nota Bayar.");
+        });
     });
 }
 
@@ -1120,6 +1113,7 @@ function closeKreditTicketModal() {
     }, 300);
 }
 
+// --- FUNGSI DOWNLOAD KREDIT TICKET (DIPERBARUI) ---
 function downloadKreditTicket() {
     const originalElement = document.getElementById('kredit-ticket-area');
     const btnDownload = document.getElementById('btn-download-kt');
@@ -1129,11 +1123,12 @@ function downloadKreditTicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
+    // 1. Buat Container Kloning (Lebar Absolut Proporsional)
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
-    offScreenContainer.style.width = '450px'; 
+    offScreenContainer.style.width = '360px'; 
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalElement.cloneNode(true);
@@ -1141,57 +1136,54 @@ function downloadKreditTicket() {
     clone.style.maxHeight = 'none';
     clone.style.overflow = 'visible';
     clone.classList.remove('overflow-y-auto');
-    clone.style.padding = '40px'; 
+    clone.style.padding = '24px'; 
 
-    // --- INJEKSI PERBAIKAN UKURAN NOTA KREDIT (Mulai) ---
-    let htmlString = clone.innerHTML;
-    
-    // Perbesar logo
-    htmlString = htmlString.replace(/w-14 h-14/g, 'w-24 h-24');
-    
-    // Perbesar teks
-    htmlString = htmlString.replace(/text-\[7px\]/g, 'text-[11px]');
-    htmlString = htmlString.replace(/text-\[8px\]/g, 'text-[12px]');
-    htmlString = htmlString.replace(/text-\[9px\]/g, 'text-[14px]');
-    htmlString = htmlString.replace(/text-\[10px\]/g, 'text-[16px]');
-    htmlString = htmlString.replace(/text-xs/g, 'text-lg');
-    htmlString = htmlString.replace(/text-sm/g, 'text-xl');
-    htmlString = htmlString.replace(/text-base/g, 'text-2xl');
-    htmlString = htmlString.replace(/text-lg/g, 'text-3xl');
-    htmlString = htmlString.replace(/text-2xl/g, 'text-4xl');
-    
-    // Penyesuaian margin/padding agar proporsional
-    htmlString = htmlString.replace(/mb-1\.5/g, 'mb-3');
-    htmlString = htmlString.replace(/mb-1/g, 'mb-2');
-    htmlString = htmlString.replace(/mt-1\.5/g, 'mt-3');
-    htmlString = htmlString.replace(/mt-1/g, 'mt-2');
-    
-    clone.innerHTML = htmlString;
-    // --- INJEKSI PERBAIKAN UKURAN NOTA KREDIT (Selesai) ---
+    // 2. Bersihkan Efek CSS yang Bermasalah di Canvas
+    const blurElements = clone.querySelectorAll('.blur-xl');
+    blurElements.forEach(el => {
+        el.classList.remove('blur-xl', 'bg-cyan-500', 'opacity-20');
+        el.style.boxShadow = '0 0 50px 20px rgba(6, 182, 212, 0.3)';
+        el.style.backgroundColor = 'transparent';
+    });
+
+    const mixBlendElements = clone.querySelectorAll('.mix-blend-screen');
+    mixBlendElements.forEach(el => {
+        el.classList.remove('mix-blend-screen');
+        el.style.opacity = '0.04';
+    });
 
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    html2canvas(clone, { scale: 3, backgroundColor: "#0b1120", useCORS: true, allowTaint: true, windowWidth: 450 })
-    .then(canvas => {
-        document.body.removeChild(offScreenContainer);
-        btnDownload.innerHTML = originalContent;
-        btnDownload.disabled = false;
-        btnDownload.classList.remove('opacity-70');
-        
-        const image = canvas.toDataURL("image/jpeg", 1.0);
-        const link = document.createElement('a');
-        const custName = document.getElementById('kt-name').innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase();
-        
-        link.download = `NOTA-TAGIHAN-KREDIT-${custName}.jpg`;
-        link.href = image;
-        link.click();
-    }).catch(error => {
-        if(document.body.contains(offScreenContainer)) document.body.removeChild(offScreenContainer);
-        btnDownload.innerHTML = originalContent;
-        btnDownload.disabled = false;
-        btnDownload.classList.remove('opacity-70');
-        alert("Terjadi kesalahan saat memproses Nota Tagihan.");
+    // 3. Render Canvas
+    document.fonts.ready.then(() => {
+        html2canvas(clone, { 
+            scale: 4, 
+            backgroundColor: "#0b1120", 
+            useCORS: true, 
+            allowTaint: true, 
+            windowWidth: 360 
+        })
+        .then(canvas => {
+            document.body.removeChild(offScreenContainer);
+            btnDownload.innerHTML = originalContent;
+            btnDownload.disabled = false;
+            btnDownload.classList.remove('opacity-70');
+            
+            const image = canvas.toDataURL("image/jpeg", 1.0);
+            const link = document.createElement('a');
+            const custName = document.getElementById('kt-name').innerText.replace(/[^a-z0-9]/gi, '_').toUpperCase();
+            
+            link.download = `NOTA-TAGIHAN-KREDIT-${custName}.jpg`;
+            link.href = image;
+            link.click();
+        }).catch(error => {
+            if(document.body.contains(offScreenContainer)) document.body.removeChild(offScreenContainer);
+            btnDownload.innerHTML = originalContent;
+            btnDownload.disabled = false;
+            btnDownload.classList.remove('opacity-70');
+            alert("Terjadi kesalahan saat memproses Nota Tagihan.");
+        });
     });
 }
 
