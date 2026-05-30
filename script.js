@@ -5,7 +5,7 @@ const services = [
     { id: 2, name: "Bed Cover", price: 25000, unit: "pcs" },
     { id: 3, name: "Express Cuci Komplit", price: 10000, unit: "kg" },
     { id: 4, name: "Express Setrika", price: 7000, unit: "kg" },
-    { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" } // TAMBAHAN: Layanan Sprei Kasur
+    { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" } 
 ];
 
 // --- KONFIGURASI SUPABASE ---
@@ -25,7 +25,7 @@ let state = {
 };
 let allOrders = [];
 let currentOrderId = null;
-let currentDetailKreditName = null; // NEW: Menyimpan nama pelanggan yang rincian kreditnya sedang dibuka
+let currentDetailKreditName = null; 
 
 // --- HELPER FUNGSI TANGGAL ---
 function formatTanggalLokal(isoString) {
@@ -156,6 +156,7 @@ async function fetchOrders() {
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     }
 }
+
 // --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -382,6 +383,7 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
+
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -592,7 +594,6 @@ function openOrderDetail(id) {
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
     if(ticketItems) {
-        // UPDATE: Render item pada nota bergaya neon futuristik
         ticketItems.innerHTML = itemsArray.map(item => `
             <div class="flex justify-between items-center text-[10px] text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2.5">
                 <div class="flex flex-col">
@@ -759,7 +760,6 @@ function downloadETicket() {
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '450px'; 
-    // UPDATE: Background disesuaikan ke dark blue agar canvas tidak clash dengan elemen putih
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalTicketElement.cloneNode(true);
@@ -769,12 +769,38 @@ function downloadETicket() {
     clone.classList.remove('overflow-y-auto');
     clone.style.padding = '40px'; 
 
+    // --- INJEKSI PERBAIKAN UKURAN NOTA (Mulai) ---
+    let htmlString = clone.innerHTML;
+    
+    // Perbesar logo
+    htmlString = htmlString.replace(/w-14 h-14/g, 'w-24 h-24');
+    
+    // Perbesar teks
+    htmlString = htmlString.replace(/text-\[7px\]/g, 'text-[11px]');
+    htmlString = htmlString.replace(/text-\[8px\]/g, 'text-[12px]');
+    htmlString = htmlString.replace(/text-\[9px\]/g, 'text-[14px]');
+    htmlString = htmlString.replace(/text-\[10px\]/g, 'text-[16px]');
+    htmlString = htmlString.replace(/text-xs/g, 'text-lg');
+    htmlString = htmlString.replace(/text-sm/g, 'text-xl');
+    htmlString = htmlString.replace(/text-base/g, 'text-2xl');
+    htmlString = htmlString.replace(/text-lg/g, 'text-3xl');
+    htmlString = htmlString.replace(/text-2xl/g, 'text-4xl');
+    
+    // Penyesuaian margin/padding agar tidak terlalu rapat
+    htmlString = htmlString.replace(/mb-1\.5/g, 'mb-3');
+    htmlString = htmlString.replace(/mb-1/g, 'mb-2');
+    htmlString = htmlString.replace(/mt-1\.5/g, 'mt-3');
+    htmlString = htmlString.replace(/mt-1/g, 'mt-2');
+    
+    clone.innerHTML = htmlString;
+    // --- INJEKSI PERBAIKAN UKURAN NOTA (Selesai) ---
+
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
     html2canvas(clone, { 
         scale: 3, 
-        backgroundColor: "#0b1120", // Background render dirubah menjadi gelap
+        backgroundColor: "#0b1120", 
         useCORS: true,
         allowTaint: true,
         windowWidth: 450 
@@ -950,6 +976,7 @@ function closeKreditDetail() {
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
 }
+
 // --- LOGIKA PEMBAYARAN KREDIT (MODAL & PROSES) ---
 function openModalBayarKredit() {
     document.getElementById('kredit-pay-sisa').innerText = formatRupiah(window.currentSisaKredit || 0);
@@ -1049,12 +1076,10 @@ function cetakRekapKredit() {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
         
-        // UPDATE: Tag lunas bergaya badge neon
         const tagLunas = isLunas ? ` <span class="text-[8px] bg-emerald-950/50 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
-            // UPDATE: Desain list item bergaya dark futuristic
             itemsHTML += `
             <div class="flex justify-between items-center text-[10px] text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2.5">
                 <div class="flex flex-col">
@@ -1109,7 +1134,6 @@ function downloadKreditTicket() {
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '450px'; 
-    // UPDATE: Background disesuaikan ke dark blue
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalElement.cloneNode(true);
@@ -1119,10 +1143,35 @@ function downloadKreditTicket() {
     clone.classList.remove('overflow-y-auto');
     clone.style.padding = '40px'; 
 
+    // --- INJEKSI PERBAIKAN UKURAN NOTA KREDIT (Mulai) ---
+    let htmlString = clone.innerHTML;
+    
+    // Perbesar logo
+    htmlString = htmlString.replace(/w-14 h-14/g, 'w-24 h-24');
+    
+    // Perbesar teks
+    htmlString = htmlString.replace(/text-\[7px\]/g, 'text-[11px]');
+    htmlString = htmlString.replace(/text-\[8px\]/g, 'text-[12px]');
+    htmlString = htmlString.replace(/text-\[9px\]/g, 'text-[14px]');
+    htmlString = htmlString.replace(/text-\[10px\]/g, 'text-[16px]');
+    htmlString = htmlString.replace(/text-xs/g, 'text-lg');
+    htmlString = htmlString.replace(/text-sm/g, 'text-xl');
+    htmlString = htmlString.replace(/text-base/g, 'text-2xl');
+    htmlString = htmlString.replace(/text-lg/g, 'text-3xl');
+    htmlString = htmlString.replace(/text-2xl/g, 'text-4xl');
+    
+    // Penyesuaian margin/padding agar proporsional
+    htmlString = htmlString.replace(/mb-1\.5/g, 'mb-3');
+    htmlString = htmlString.replace(/mb-1/g, 'mb-2');
+    htmlString = htmlString.replace(/mt-1\.5/g, 'mt-3');
+    htmlString = htmlString.replace(/mt-1/g, 'mt-2');
+    
+    clone.innerHTML = htmlString;
+    // --- INJEKSI PERBAIKAN UKURAN NOTA KREDIT (Selesai) ---
+
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    // UPDATE: backgroundColor diubah ke gelap saat dirender
     html2canvas(clone, { scale: 3, backgroundColor: "#0b1120", useCORS: true, allowTaint: true, windowWidth: 450 })
     .then(canvas => {
         document.body.removeChild(offScreenContainer);
