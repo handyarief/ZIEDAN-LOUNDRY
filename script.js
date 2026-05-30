@@ -478,7 +478,6 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
-
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -593,13 +592,14 @@ function openOrderDetail(id) {
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
     if(ticketItems) {
+        // UPDATE: Ukuran font list rincian nota diperbesar
         ticketItems.innerHTML = itemsArray.map(item => `
-            <div class="flex justify-between items-center text-[10px] text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2.5">
+            <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
                 <div class="flex flex-col">
-                    <span class="font-bold text-cyan-50 tracking-wide">${item.name}</span>
-                    <span class="text-[9px] text-cyan-500/80 font-mono mt-0.5">@ ${formatRupiah(item.price || 0)}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${item.name}</span>
+                    <span class="text-[11px] text-cyan-500/80 font-mono mt-1">@ ${formatRupiah(item.price || 0)}</span>
                 </div>
-                <span class="font-black bg-cyan-950/40 text-cyan-300 px-2.5 py-1 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest">${item.qty} ${item.unit.toUpperCase()}</span>
+                <span class="font-black bg-cyan-950/40 text-cyan-300 px-3 py-1.5 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest text-xs">${item.qty} ${item.unit.toUpperCase()}</span>
             </div>
         `).join('');
     }
@@ -656,13 +656,15 @@ function refreshPaymentUI(paymentStatus) {
     if (paymentStatus === 'cash') {
         const classLunas = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "CASH"; badgeDetail.className = classLunas; }
-        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[8px] bg-emerald-950/50 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
+        // UPDATE: Perbesar ukuran text dan padding badge tiket
+        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[10px] bg-emerald-950/50 text-emerald-400 px-3 py-1.5 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassActive + disabledStateClass + "border-green-500 bg-green-500 text-white";
         btnKredit.className = baseBtnClassInactive + disabledStateClass;
     } else {
         const classKredit = "text-[10px] bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "KREDIT"; badgeDetail.className = classKredit; }
-        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[8px] bg-rose-950/50 text-rose-400 px-2.5 py-1 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
+        // UPDATE: Perbesar ukuran text dan padding badge tiket
+        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[10px] bg-rose-950/50 text-rose-400 px-3 py-1.5 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassInactive + disabledStateClass;
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
     }
@@ -701,23 +703,26 @@ function refreshStatusUI(status) {
     if (status === 'proses') {
         btnProses.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-yellow-500 bg-yellow-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         btnSelesai.className = classInactive;
+        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if(ticketBadge) {
             ticketBadge.innerText = "PROSES";
-            ticketBadge.className = "text-[8px] bg-blue-950/50 text-blue-400 px-2.5 py-1 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-[10px] bg-blue-950/50 text-blue-400 px-3 py-1.5 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
         }
     } else if (status === 'selesai') {
         btnProses.className = classInactive;
         btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
+        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if(ticketBadge) {
             ticketBadge.innerText = "SELESAI";
-            ticketBadge.className = "text-[8px] bg-cyan-950/50 text-cyan-400 px-2.5 py-1 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-[10px] bg-cyan-950/50 text-cyan-400 px-3 py-1.5 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
         }
     } else {
         btnProses.className = classInactive;
         btnSelesai.className = classInactive;
+        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if(ticketBadge) {
             ticketBadge.innerText = "BARU";
-            ticketBadge.className = "text-[8px] bg-slate-800/80 text-slate-300 px-2.5 py-1 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[65px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-[10px] bg-slate-800/80 text-slate-300 px-3 py-1.5 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
         }
     }
 }
@@ -745,7 +750,6 @@ function closeTicketModal() {
         modal.classList.remove('flex');
     }, 300);
 }
-
 // --- FUNGSI DOWNLOAD ETICKET (DIPERBARUI) ---
 function downloadETicket() {
     const originalTicketElement = document.getElementById('ticket-area');
@@ -756,12 +760,15 @@ function downloadETicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    // 1. Buat Container Kloning sesuai resolusi Mobile (menjaga layout flex & grid)
+    // 1. Buat Container Kloning
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
-    offScreenContainer.style.width = '360px'; // Set absolut di 360px agar proporsional
+    
+    // UPDATE: Lebar kontainer diperbesar menjadi 420px agar font yang sudah membesar 
+    // tidak membungkus (wrapping) berantakan ke bawah.
+    offScreenContainer.style.width = '420px'; 
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalTicketElement.cloneNode(true);
@@ -771,7 +778,7 @@ function downloadETicket() {
     clone.classList.remove('overflow-y-auto');
     clone.style.padding = '24px'; 
 
-    // 2. Perbaiki Efek CSS yang tidak disupport HTML2Canvas (Blur & Blend Mode)
+    // 2. Perbaiki Efek CSS yang tidak disupport HTML2Canvas
     const blurElements = clone.querySelectorAll('.blur-xl');
     blurElements.forEach(el => {
         el.classList.remove('blur-xl', 'bg-cyan-500', 'opacity-20');
@@ -782,7 +789,7 @@ function downloadETicket() {
     const mixBlendElements = clone.querySelectorAll('.mix-blend-screen');
     mixBlendElements.forEach(el => {
         el.classList.remove('mix-blend-screen');
-        el.style.opacity = '0.04'; // Set fallback transparan tanpa blend mode
+        el.style.opacity = '0.04';
     });
 
     offScreenContainer.appendChild(clone);
@@ -791,11 +798,11 @@ function downloadETicket() {
     // 3. Pastikan font sudah termuat dengan sempurna sebelum capture
     document.fonts.ready.then(() => {
         html2canvas(clone, { 
-            scale: 4, // Gunakan Scale 4 (Kualitas 4K, ukuran file tetap kecil)
+            scale: 4, 
             backgroundColor: "#0b1120", 
             useCORS: true,
             allowTaint: true,
-            windowWidth: 360 
+            windowWidth: 420 // UPDATE: Disesuaikan dengan lebar div off-screen
         })
         .then(canvas => {
             document.body.removeChild(offScreenContainer);
@@ -829,6 +836,7 @@ function closeOrderDetail() {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
 }
+
 // --- RENDER KREDIT LIST ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1056,7 +1064,6 @@ async function prosesBayarKredit() {
     
     openKreditDetail(currentDetailKreditName);
 }
-
 // --- LOGIKA CETAK NOTA KREDIT ---
 function cetakRekapKredit() {
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
@@ -1069,17 +1076,19 @@ function cetakRekapKredit() {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
         
-        const tagLunas = isLunas ? ` <span class="text-[8px] bg-emerald-950/50 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
+        // UPDATE: Ukuran font diperbesar
+        const tagLunas = isLunas ? ` <span class="text-[9px] bg-emerald-950/50 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
+            // UPDATE: Ukuran font diperbesar (text-xs, text-sm, dll)
             itemsHTML += `
-            <div class="flex justify-between items-center text-[10px] text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2.5">
+            <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
                 <div class="flex flex-col">
-                    <span class="font-bold text-cyan-50 tracking-wide">${item.name} <span class="text-cyan-500/80 font-mono">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
-                    <span class="text-[9px] text-slate-500 font-mono mt-0.5">${formatTanggalSingkat(order.date)}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${item.name} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
+                    <span class="text-[11px] text-slate-500 font-mono mt-1">${formatTanggalSingkat(order.date)}</span>
                 </div>
-                <span class="font-mono font-black ${isLunas ? 'text-slate-600 line-through' : 'text-cyan-300'} whitespace-nowrap">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="font-mono font-black ${isLunas ? 'text-slate-600 line-through' : 'text-cyan-300'} whitespace-nowrap text-sm">${formatRupiah(item.qty * (item.price || 0))}</span>
             </div>
             `;
         });
@@ -1128,7 +1137,8 @@ function downloadKreditTicket() {
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
-    offScreenContainer.style.width = '360px'; 
+    // UPDATE: Lebar kontainer disesuaikan menjadi 420px agar font yang diperbesar punya ruang
+    offScreenContainer.style.width = '420px'; 
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalElement.cloneNode(true);
@@ -1162,7 +1172,7 @@ function downloadKreditTicket() {
             backgroundColor: "#0b1120", 
             useCORS: true, 
             allowTaint: true, 
-            windowWidth: 360 
+            windowWidth: 420 // UPDATE: Disesuaikan dengan div off-screen
         })
         .then(canvas => {
             document.body.removeChild(offScreenContainer);
