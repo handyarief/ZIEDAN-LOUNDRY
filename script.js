@@ -5,7 +5,8 @@ const services = [
     { id: 2, name: "Bed Cover", price: 25000, unit: "pcs" },
     { id: 3, name: "Express Cuci Komplit", price: 10000, unit: "kg" },
     { id: 4, name: "Express Setrika", price: 7000, unit: "kg" },
-    { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" } 
+    { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" },
+    { id: 6, name: "Custom", price: 0, unit: "pcs", isCustom: true } // BARU: Layanan Custom
 ];
 
 // --- KONFIGURASI SUPABASE ---
@@ -16,6 +17,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // --- KONSTANTA LOKAL STORAGE ---
 const LS_ORDERS_KEY = 'ziedan_local_orders';
 const LS_PENDING_KEY = 'ziedan_pending_orders';
+const LS_CUSTOM_KEY = 'ziedan_custom_service'; // BARU: Key untuk konfigurasi custom layanan
 
 // --- STATE MANAGEMENT ---
 let state = {
@@ -48,6 +50,136 @@ function formatTanggalSingkat(isoString) {
     } catch (e) {
         return '-';
     }
+}
+
+// --- FUNGSI FORMAT RUPIAH ---
+function formatRupiah(angka) {
+    return "Rp " + angka.toLocaleString('id-ID');
+}
+
+// --- FUNGSI CUSTOM SERVICE (BARU) ---
+function loadCustomService() {
+    try {
+        const raw = localStorage.getItem(LS_CUSTOM_KEY);
+        if (raw) {
+            const data = JSON.parse(raw);
+            const customSrv = services.find(s => s.id === 6);
+            if (customSrv) {
+                customSrv.name = data.name;
+                customSrv.price = data.price;
+                customSrv.unit = data.unit;
+            }
+        }
+        updateCustomServiceUI();
+    } catch (e) {
+        console.warn("Gagal meload custom service:", e);
+    }
+}
+
+function updateCustomServiceUI() {
+    const customSrv = services.find(s => s.id === 6);
+    if (!customSrv) return;
+
+    const nameEl = document.getElementById('label-srv-6-name');
+    const priceEl = document.getElementById('label-srv-6-price');
+    const unitEl = document.getElementById('label-srv-6-unit');
+    const unitInputEl = document.getElementById('label-srv-6-unit-input');
+
+    if (nameEl) nameEl.innerText = customSrv.name;
+    if (priceEl) priceEl.innerText = formatRupiah(customSrv.price);
+    if (unitEl) unitEl.innerText = '/' + customSrv.unit.toLowerCase();
+    if (unitInputEl) unitInputEl.innerText = customSrv.unit.toUpperCase();
+}
+
+function openCustomServiceModal(event) {
+    if (event) event.stopPropagation(); // Mencegah card tertoggle saat klik tombol gear
+    const customSrv = services.find(s => s.id === 6);
+    
+    document.getElementById('input-custom-name').value = customSrv.name !== 'Custom' ? customSrv.name : '';
+    document.getElementById('input-custom-price').value = customSrv.price > 0 ? customSrv.price : '';
+    
+    if (customSrv.unit.toLowerCase() === 'kg') {
+        document.getElementById('unit-kg').checked = true;
+    } else {
+        document.getElementById('unit-pcs').checked = true;
+    }
+    refreshRadioUI();
+
+    const modal = document.getElementById('custom-service-modal');
+    const modalContent = document.getElementById('custom-service-modal-content');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeCustomServiceModal() {
+    const modal = document.getElementById('custom-service-modal');
+    const modalContent = document.getElementById('custom-service-modal-content');
+    modal.classList.add('opacity-0');
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+}
+
+function refreshRadioUI() {
+    const isKg = document.getElementById('unit-kg').checked;
+    const labelKg = document.getElementById('label-unit-kg');
+    const labelPcs = document.getElementById('label-unit-pcs');
+
+    const activeClass = ['border-brand-500', 'bg-brand-50', 'text-brand-600', 'shadow-sm', 'ring-1', 'ring-brand-500'];
+    const inactiveClass = ['border-gray-200', 'bg-gray-50', 'text-gray-700'];
+
+    if (isKg) {
+        labelKg.classList.add(...activeClass);
+        labelKg.classList.remove(...inactiveClass);
+        labelPcs.classList.add(...inactiveClass);
+        labelPcs.classList.remove(...activeClass);
+    } else {
+        labelPcs.classList.add(...activeClass);
+        labelPcs.classList.remove(...inactiveClass);
+        labelKg.classList.add(...inactiveClass);
+        labelKg.classList.remove(...activeClass);
+    }
+}
+
+function saveCustomServiceConfig() {
+    const nameVal = document.getElementById('input-custom-name').value.trim();
+    const priceVal = parseInt(document.getElementById('input-custom-price').value);
+    const isKg = document.getElementById('unit-kg').checked;
+
+    if (!nameVal) {
+        alert("Nama layanan tidak boleh kosong!");
+        return;
+    }
+    if (isNaN(priceVal) || priceVal < 0) {
+        alert("Harga layanan tidak valid!");
+        return;
+    }
+
+    const customSrv = services.find(s => s.id === 6);
+    if (customSrv) {
+        customSrv.name = nameVal;
+        customSrv.price = priceVal;
+        customSrv.unit = isKg ? 'kg' : 'pcs';
+
+        localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify({
+            name: customSrv.name,
+            price: customSrv.price,
+            unit: customSrv.unit
+        }));
+        
+        updateCustomServiceUI();
+        hitungTotal(); // Update total jika layanan ini sedang aktif dipilih
+    }
+
+    closeCustomServiceModal();
 }
 
 // --- HELPER BACA & TULIS LOKAL STORAGE ---
@@ -156,7 +288,6 @@ async function fetchOrders() {
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     }
 }
-
 // --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -181,6 +312,8 @@ function navTo(page) {
 
 // --- FUNGSI UTAMA ---
 function initApp() {
+    loadCustomService(); // BARU: Panggil konfigurasi layanan custom dari lokal storage saat aplikasi dimuat
+
     services.forEach(srv => {
         const input = document.getElementById(`input-${srv.id}`);
         if(input) input.value = 1;
@@ -216,16 +349,26 @@ function updateServiceUI() {
         const card = document.getElementById(`srv-${idx}`);
         const checkIcon = card?.querySelector('.check-icon');
         if (!card) return;
+        
         if (state.selectedServiceIds.includes(idx)) {
-            card.classList.remove('border-white', 'shadow-sm');
+            // Hapus styling default, ganti dengan styling aktif
+            card.classList.remove('border-white', 'shadow-sm', 'border-dashed', 'border-brand-300');
             card.classList.add('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
             if(checkIcon) {
                 checkIcon.classList.remove('opacity-0', 'scale-50');
                 checkIcon.classList.add('opacity-100', 'scale-100');
             }
         } else {
-            card.classList.add('border-white', 'shadow-sm');
+            // Kembalikan ke styling tidak aktif
             card.classList.remove('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
+            
+            if (idx === 6) { // Khusus untuk Layanan Custom (id: 6) kembalikan border dashed
+                card.classList.add('border-dashed', 'border-brand-300');
+                card.classList.remove('border-white');
+            } else { // Layanan biasa
+                card.classList.add('border-white', 'shadow-sm');
+            }
+            
             if(checkIcon) {
                 checkIcon.classList.add('opacity-0', 'scale-50');
                 checkIcon.classList.remove('opacity-100', 'scale-100');
@@ -255,9 +398,6 @@ function hitungTotal() {
     if(totalEl) totalEl.innerText = formatRupiah(state.total);
 }
 
-function formatRupiah(angka) {
-    return "Rp " + angka.toLocaleString('id-ID');
-}
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
@@ -271,6 +411,16 @@ async function prosesPesanan() {
     if (state.selectedServiceIds.length === 0) {
         alert("Pilih minimal satu layanan!");
         return;
+    }
+    
+    // Validasi layanan custom jika harganya 0
+    if (state.selectedServiceIds.includes(6)) {
+        const customSrv = services.find(s => s.id === 6);
+        if (customSrv.price <= 0 || customSrv.name === 'Custom') {
+            alert("Harap atur Nama dan Harga Layanan Custom terlebih dahulu (Klik icon Gerigi)!");
+            shakeElement('srv-6');
+            return;
+        }
     }
     
     const btnSimpan = document.querySelector('#footer-total button');
@@ -592,7 +742,6 @@ function openOrderDetail(id) {
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
     if(ticketItems) {
-        // UPDATE: Ukuran font list rincian nota diperbesar
         ticketItems.innerHTML = itemsArray.map(item => `
             <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
                 <div class="flex flex-col">
@@ -656,14 +805,12 @@ function refreshPaymentUI(paymentStatus) {
     if (paymentStatus === 'cash') {
         const classLunas = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "CASH"; badgeDetail.className = classLunas; }
-        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[10px] bg-emerald-950/50 text-emerald-400 px-3 py-1.5 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassActive + disabledStateClass + "border-green-500 bg-green-500 text-white";
         btnKredit.className = baseBtnClassInactive + disabledStateClass;
     } else {
         const classKredit = "text-[10px] bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "KREDIT"; badgeDetail.className = classKredit; }
-        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[10px] bg-rose-950/50 text-rose-400 px-3 py-1.5 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassInactive + disabledStateClass;
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
@@ -703,7 +850,6 @@ function refreshStatusUI(status) {
     if (status === 'proses') {
         btnProses.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-yellow-500 bg-yellow-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         btnSelesai.className = classInactive;
-        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if(ticketBadge) {
             ticketBadge.innerText = "PROSES";
             ticketBadge.className = "text-[10px] bg-blue-950/50 text-blue-400 px-3 py-1.5 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
@@ -711,7 +857,6 @@ function refreshStatusUI(status) {
     } else if (status === 'selesai') {
         btnProses.className = classInactive;
         btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
-        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if(ticketBadge) {
             ticketBadge.innerText = "SELESAI";
             ticketBadge.className = "text-[10px] bg-cyan-950/50 text-cyan-400 px-3 py-1.5 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
@@ -719,7 +864,6 @@ function refreshStatusUI(status) {
     } else {
         btnProses.className = classInactive;
         btnSelesai.className = classInactive;
-        // UPDATE: Perbesar ukuran text dan padding badge tiket
         if(ticketBadge) {
             ticketBadge.innerText = "BARU";
             ticketBadge.className = "text-[10px] bg-slate-800/80 text-slate-300 px-3 py-1.5 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
@@ -750,7 +894,7 @@ function closeTicketModal() {
         modal.classList.remove('flex');
     }, 300);
 }
-// --- FUNGSI DOWNLOAD ETICKET (DIPERBARUI) ---
+
 function downloadETicket() {
     const originalTicketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
@@ -760,14 +904,10 @@ function downloadETicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    // 1. Buat Container Kloning
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
-    
-    // UPDATE: Lebar kontainer diperbesar menjadi 420px agar font yang sudah membesar 
-    // tidak membungkus (wrapping) berantakan ke bawah.
     offScreenContainer.style.width = '420px'; 
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
@@ -778,7 +918,6 @@ function downloadETicket() {
     clone.classList.remove('overflow-y-auto');
     clone.style.padding = '24px'; 
 
-    // 2. Perbaiki Efek CSS yang tidak disupport HTML2Canvas
     const blurElements = clone.querySelectorAll('.blur-xl');
     blurElements.forEach(el => {
         el.classList.remove('blur-xl', 'bg-cyan-500', 'opacity-20');
@@ -795,14 +934,13 @@ function downloadETicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    // 3. Pastikan font sudah termuat dengan sempurna sebelum capture
     document.fonts.ready.then(() => {
         html2canvas(clone, { 
             scale: 4, 
             backgroundColor: "#0b1120", 
             useCORS: true,
             allowTaint: true,
-            windowWidth: 420 // UPDATE: Disesuaikan dengan lebar div off-screen
+            windowWidth: 420 
         })
         .then(canvas => {
             document.body.removeChild(offScreenContainer);
@@ -1076,12 +1214,10 @@ function cetakRekapKredit() {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
         
-        // UPDATE: Ukuran font diperbesar
         const tagLunas = isLunas ? ` <span class="text-[9px] bg-emerald-950/50 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
-            // UPDATE: Ukuran font diperbesar (text-xs, text-sm, dll)
             itemsHTML += `
             <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
                 <div class="flex flex-col">
@@ -1122,7 +1258,6 @@ function closeKreditTicketModal() {
     }, 300);
 }
 
-// --- FUNGSI DOWNLOAD KREDIT TICKET (DIPERBARUI) ---
 function downloadKreditTicket() {
     const originalElement = document.getElementById('kredit-ticket-area');
     const btnDownload = document.getElementById('btn-download-kt');
@@ -1132,12 +1267,10 @@ function downloadKreditTicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    // 1. Buat Container Kloning (Lebar Absolut Proporsional)
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
-    // UPDATE: Lebar kontainer disesuaikan menjadi 420px agar font yang diperbesar punya ruang
     offScreenContainer.style.width = '420px'; 
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
@@ -1148,7 +1281,6 @@ function downloadKreditTicket() {
     clone.classList.remove('overflow-y-auto');
     clone.style.padding = '24px'; 
 
-    // 2. Bersihkan Efek CSS yang Bermasalah di Canvas
     const blurElements = clone.querySelectorAll('.blur-xl');
     blurElements.forEach(el => {
         el.classList.remove('blur-xl', 'bg-cyan-500', 'opacity-20');
@@ -1165,14 +1297,13 @@ function downloadKreditTicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    // 3. Render Canvas
     document.fonts.ready.then(() => {
         html2canvas(clone, { 
             scale: 4, 
             backgroundColor: "#0b1120", 
             useCORS: true, 
             allowTaint: true, 
-            windowWidth: 420 // UPDATE: Disesuaikan dengan div off-screen
+            windowWidth: 420 
         })
         .then(canvas => {
             document.body.removeChild(offScreenContainer);
