@@ -288,6 +288,7 @@ async function fetchOrders() {
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     }
 }
+
 // --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -351,7 +352,6 @@ function updateServiceUI() {
         if (!card) return;
         
         if (state.selectedServiceIds.includes(idx)) {
-            // Hapus styling default, ganti dengan styling aktif
             card.classList.remove('border-white', 'shadow-sm', 'border-dashed', 'border-brand-300');
             card.classList.add('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
             if(checkIcon) {
@@ -359,13 +359,12 @@ function updateServiceUI() {
                 checkIcon.classList.add('opacity-100', 'scale-100');
             }
         } else {
-            // Kembalikan ke styling tidak aktif
             card.classList.remove('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
             
-            if (idx === 6) { // Khusus untuk Layanan Custom (id: 6) kembalikan border dashed
+            if (idx === 6) { 
                 card.classList.add('border-dashed', 'border-brand-300');
                 card.classList.remove('border-white');
-            } else { // Layanan biasa
+            } else { 
                 card.classList.add('border-white', 'shadow-sm');
             }
             
@@ -521,6 +520,7 @@ function backToHome() {
     const footer = document.getElementById('footer-total');
     if(footer) footer.classList.remove('translate-y-full', 'opacity-0');
 }
+
 function switchToKredit() {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.add('hidden');
@@ -648,8 +648,8 @@ function renderOrderList() {
         }
 
         let pendingBadge = order._isPending
-            ? '<span class="w-2 h-2 rounded-full bg-orange-400 absolute top-2 right-2 shadow-sm" title="Menunggu upload ke server"></span>'
-            : (order.payment === 'kredit' ? '<span class="w-2 h-2 rounded-full bg-red-400 absolute top-2 right-2 shadow-sm"></span>' : '');
+            ? '<span class="w-2.5 h-2.5 rounded-full bg-orange-400 absolute top-2 right-2 shadow-sm" title="Menunggu upload ke server"></span>'
+            : (order.payment === 'kredit' ? '<span class="w-2.5 h-2.5 rounded-full bg-red-400 absolute top-2 right-2 shadow-sm"></span>' : '');
 
         let statusColor = "bg-yellow-50 text-yellow-600 border-yellow-100";
         let statusText = "PROSES";
@@ -657,42 +657,39 @@ function renderOrderList() {
         if (order.status === 'selesai') {
             if (order.payment === 'cash') {
                 statusColor = "bg-green-50 text-green-600 border-green-100";
-                statusText = "SELESAI<br>CASH";
+                statusText = "SELESAI (CASH)";
             } else {
                 statusColor = "bg-red-50 text-red-600 border-red-100";
-                statusText = "SELESAI<br>KREDIT";
+                statusText = "SELESAI (KREDIT)";
             }
         } else if (order.status === 'baru') {
             statusColor = "bg-blue-50 text-blue-500 border-blue-100";
-            statusText = order._isPending ? "PENDING<br>UPLOAD" : "BARU";
+            statusText = order._isPending ? "PENDING UPLOAD" : "BARU";
         }
 
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
+        // UPDATE UI: Implementasi Stacked Layout (Mobile-First)
         return `
-        <div class="bg-white rounded-xl px-4 py-3 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-2 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
+        <div class="bg-white rounded-xl p-4 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-3 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
-            <div class="grid grid-cols-[18px_1.4fr_1fr_55px_55px_30px] gap-1.5 items-center">
-                <span class="text-xs font-bold text-gray-400">${index + 1}</span>
-                
-                <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-[10px] font-bold text-brand-900 leading-tight break-words w-full line-clamp-2">${order.customer}</span>
+            <div class="grid grid-cols-[32px_1fr_auto_32px] gap-3 items-center">
+                <div class="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-black shadow-sm">
+                    ${index + 1}
                 </div>
                 
-                <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-[9px] text-gray-500 font-medium leading-tight break-words w-full line-clamp-2">${summaryService}</span>
+                <div class="flex flex-col min-w-0">
+                    <span class="text-[13px] font-extrabold text-brand-900 leading-tight truncate mb-0.5">${order.customer}</span>
+                    <span class="text-[10px] text-gray-500 font-semibold truncate"><i class="fas fa-tag text-gray-400 mr-1"></i>${summaryService}</span>
                 </div>
                 
-                <div class="flex items-center justify-center">
-                    <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded-lg inline-block text-center leading-tight ${statusColor}">${statusText}</span>
+                <div class="flex flex-col items-end justify-center text-right">
+                    <span class="text-[13px] font-extrabold text-brand-600 mb-1">${formatRupiah(order.total)}</span>
+                    <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded shadow-sm ${statusColor}">${statusText}</span>
                 </div>
                 
-                <div class="flex items-center justify-end text-right">
-                    <span class="text-[9px] font-extrabold text-brand-600 whitespace-nowrap">${formatRupiah(order.total)}</span>
-                </div>
-                
-                <button onclick="hapusPesanan(${idAttr}, event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Pesanan">
-                    <i class="fas fa-trash-alt text-xs pointer-events-none"></i>
+                <button onclick="hapusPesanan(${idAttr}, event)" class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Pesanan">
+                    <i class="fas fa-trash-alt text-sm pointer-events-none"></i>
                 </button>
             </div>
         </div>
@@ -1004,43 +1001,42 @@ function renderKreditList() {
     const groupedArray = Object.values(groupedKredit);
     container.innerHTML = groupedArray.map((data, index) => {
         const sisa = data.totalAmount - data.paidAmount;
-
         const nameStr = data.displayName.replace(/'/g, "\\'"); 
         
-        let badgeSisaHtml = sisa <= 0 
-            ? `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-green-50 text-green-600 border-green-100 uppercase tracking-tighter whitespace-nowrap">LUNAS</span>`
-            : `<span class="text-[7px] font-black border px-1.5 py-0.5 rounded bg-red-50 text-red-600 border-red-100 uppercase tracking-tighter whitespace-nowrap">${formatRupiah(sisa)}</span>`;
+        // UPDATE UI: Badge status & warna nominal yang cerdas
+        let isLunas = sisa <= 0;
+        let sisaColorClass = isLunas ? 'text-green-500' : 'text-red-500';
+        let badgeSisaHtml = isLunas
+            ? `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded shadow-sm bg-green-50 text-green-600 border-green-100 uppercase">LUNAS</span>`
+            : `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded shadow-sm bg-red-50 text-red-600 border-red-100 uppercase">BLM LUNAS</span>`;
 
+        // UPDATE UI: Implementasi Stacked Layout (Mobile-First) untuk Data Kredit
         return `
-        <div class="bg-white rounded-xl px-4 py-3 shadow-sm border border-red-100 mb-2 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
-            <div class="grid grid-cols-[18px_1.2fr_60px_35px_55px_25px] gap-1.5 items-center">
-                <span class="text-xs font-bold text-gray-400">${index + 1}</span>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-red-100 mb-3 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
+            <div class="grid grid-cols-[32px_1fr_auto_32px] gap-3 items-center">
                 
-                <div class="flex items-center min-w-0 text-left pr-1">
-                    <span class="text-[10px] font-bold text-brand-900 leading-tight break-words w-full line-clamp-2">${data.displayName}</span>
+                <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-xs font-black shadow-sm">
+                    ${index + 1}
+                </div>
+                
+                <div class="flex flex-col min-w-0">
+                    <span class="text-[13px] font-extrabold text-brand-900 leading-tight truncate mb-0.5">${data.displayName}</span>
+                    <span class="text-[10px] text-gray-500 font-semibold truncate"><i class="fas fa-file-invoice-dollar text-gray-400 mr-1"></i>${data.transactionCount} Transaksi</span>
                 </div>
 
-                <div class="flex items-center justify-center">
+                <div class="flex flex-col items-end justify-center text-right">
+                    <span class="text-[13px] font-extrabold ${sisaColorClass} mb-1">${formatRupiah(sisa)}</span>
                     ${badgeSisaHtml}
                 </div>
 
-                <div class="flex items-center justify-center">
-                    <span class="text-[10px] text-gray-500 font-bold bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 whitespace-nowrap">${data.transactionCount}x</span>
-                </div>
-                
-                <div class="flex items-center justify-end text-right">
-                    <span class="text-[9px] font-black text-gray-400 whitespace-nowrap">${formatRupiah(data.totalAmount)}</span>
-                </div>
-
-                <button onclick="hapusSemuaKreditPelanggan('${nameStr}', event)" class="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 transition-all ml-auto focus:outline-none" title="Hapus Semua Kredit ${data.displayName}">
-                    <i class="fas fa-trash-alt text-[10px] pointer-events-none"></i>
+                <button onclick="hapusSemuaKreditPelanggan('${nameStr}', event)" class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Semua Kredit ${data.displayName}">
+                    <i class="fas fa-trash-alt text-sm pointer-events-none"></i>
                 </button>
             </div>
         </div>
         `;
     }).join('');
 }
-
 // --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
@@ -1067,27 +1063,27 @@ function openKreditDetail(customerName) {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         
         const isLunas = sisaOrder <= 0;
-        const statusLunasHtml = isLunas ? `<span class="text-[8px] font-black bg-green-100 text-green-600 px-1 py-0.5 rounded uppercase leading-none">LUNAS</span>` : '';
+        const statusLunasHtml = isLunas ? `<span class="text-[9px] font-bold bg-green-100 text-green-600 px-1.5 py-0.5 rounded uppercase leading-none shadow-sm">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
         itemsArr.forEach(item => {
             itemsHTML += `
-            <div class="grid grid-cols-[16px_1.4fr_35px_40px_1fr_25px] gap-1.5 py-2.5 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
-                <span class="text-[10px] font-bold text-gray-400">${counter++}</span>
+            <div class="grid grid-cols-[16px_1.4fr_35px_40px_1fr_25px] gap-1.5 py-3 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
+                <span class="text-[11px] font-bold text-gray-400">${counter++}</span>
                 <div class="flex flex-col min-w-0 pr-1">
                     <div class="flex items-start gap-1.5 flex-wrap">
-                        <span class="text-[11px] font-bold text-brand-900 leading-snug break-words">${item.name}</span>
+                        <span class="text-xs font-bold text-brand-900 leading-snug break-words">${item.name}</span>
                         ${statusLunasHtml}
                     </div>
                 </div>
-                <span class="text-[9px] font-extrabold bg-brand-50 text-brand-900 px-1 py-1 rounded border border-brand-100 text-center whitespace-nowrap">${item.qty}${item.unit.toUpperCase()}</span>
-                <span class="text-[9px] text-gray-500 font-medium text-center leading-tight">${formatTanggalSingkat(order.date)}</span>
+                <span class="text-[10px] font-extrabold bg-brand-50 text-brand-900 px-1 py-1 rounded border border-brand-100 text-center whitespace-nowrap">${item.qty}${item.unit.toUpperCase()}</span>
+                <span class="text-[10px] text-gray-500 font-medium text-center leading-tight">${formatTanggalSingkat(order.date)}</span>
                 <span class="text-[11px] font-extrabold ${isLunas ? 'text-green-500' : 'text-red-500'} text-right">${formatRupiah(item.qty * (item.price || 0))}</span>
                 
-                <button onclick="hapusPesanan(${idAttr}, event)" class="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Transaksi">
-                    <i class="fas fa-times text-[10px] pointer-events-none"></i>
+                <button onclick="hapusPesanan(${idAttr}, event)" class="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Transaksi">
+                    <i class="fas fa-times text-xs pointer-events-none"></i>
                 </button>
             </div>
             `;
@@ -1202,6 +1198,7 @@ async function prosesBayarKredit() {
     
     openKreditDetail(currentDetailKreditName);
 }
+
 // --- LOGIKA CETAK NOTA KREDIT ---
 function cetakRekapKredit() {
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
