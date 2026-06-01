@@ -124,11 +124,11 @@
                         <div class="w-full h-px bg-brand-50 mx-auto w-[90%]"></div>
                         <div class="relative group">
                             <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                                <i class="fab fa-whatsapp text-gray-300 group-focus-within:text-green-500 transition-colors"></i>
+                                <i class="fas fa-map-marker-alt text-gray-300 group-focus-within:text-brand-500 transition-colors"></i>
                             </div>
-                            <input type="tel" id="custWa" 
+                            <input type="text" id="custAddress" 
                                 class="w-full pl-12 pr-4 py-4 bg-transparent rounded-2xl text-brand-900 placeholder-gray-400 focus:outline-none focus:bg-brand-50 transition-all font-medium text-sm"
-                                placeholder="Nomor WhatsApp">
+                                placeholder="Alamat Lengkap / Rumah">
                         </div>
                     </div>
                 </div>
@@ -228,46 +228,52 @@
                         </div>
                     </div>
 
-                    <div onclick="toggleService(3)" id="srv-3" class="service-card group relative p-4 bg-white/90 backdrop-blur-sm rounded-3xl border border-white shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
+                    <div onclick="toggleService(3)" id="srv-3" class="service-card group relative p-4 bg-brand-50/50 backdrop-blur-sm rounded-3xl border border-dashed border-brand-300 shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
                         <div class="absolute top-3 right-3 opacity-0 check-icon transition-all duration-300 text-brand-500 transform scale-50 z-10">
                             <i class="fas fa-circle-check text-lg"></i>
                         </div>
-                        <div class="w-10 h-10 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                            <i class="fas fa-rocket"></i>
+                        <button onclick="openCustomServiceModal(event, 3)" class="absolute top-2.5 right-11 w-7 h-7 rounded-full bg-white hover:bg-brand-100 text-gray-400 hover:text-brand-600 border border-brand-100 flex items-center justify-center transition-all z-20 shadow-sm active:scale-95" title="Atur Layanan">
+                            <i class="fas fa-cog text-[10px]"></i>
+                        </button>
+                        <div class="w-10 h-10 rounded-2xl bg-white text-brand-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-brand-100">
+                            <i class="fas fa-star"></i>
                         </div>
-                        <h3 class="font-bold text-brand-900 leading-tight mb-1">Express Cuci</h3>
-                        <p class="text-[11px] text-gray-400 mb-3">Selesai Cepat</p>
+                        <h3 id="label-srv-3-name" class="font-bold text-brand-900 leading-tight mb-1">Custom 1</h3>
+                        <p class="text-[11px] text-gray-400 mb-3">Layanan Pilihan</p>
                         <div class="flex items-center justify-between">
-                            <p class="text-xs font-bold text-brand-600">Rp 10rb<span class="text-[10px] text-gray-400 font-normal">/kg</span></p>
+                            <p class="text-xs font-bold text-brand-600"><span id="label-srv-3-price">Rp 0</span><span id="label-srv-3-unit" class="text-[10px] text-gray-400 font-normal">/pcs</span></p>
                         </div>
-                        <div id="input-area-3" class="hidden mt-3 pt-3 border-t border-brand-50 animate-fade-in-up" onclick="event.stopPropagation()">
-                            <div class="flex items-center bg-brand-50 rounded-xl p-1 border border-brand-100">
+                        <div id="input-area-3" class="hidden mt-3 pt-3 border-t border-brand-100 border-dashed animate-fade-in-up" onclick="event.stopPropagation()">
+                            <div class="flex items-center bg-white rounded-xl p-1 border border-brand-200">
                                 <input type="number" id="input-3" value="1" step="0.1" min="0.1"
                                     class="w-full bg-transparent px-2 py-1 text-sm text-center font-bold text-brand-900 focus:outline-none"
                                     placeholder="0" oninput="updateQty(3, this.value)">
-                                <span class="text-[10px] font-bold text-brand-400 pr-3">KG</span>
+                                <span id="label-srv-3-unit-input" class="text-[10px] font-bold text-brand-400 pr-3">PCS</span>
                             </div>
                         </div>
                     </div>
 
-                    <div onclick="toggleService(4)" id="srv-4" class="service-card group relative p-4 bg-white/90 backdrop-blur-sm rounded-3xl border border-white shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
+                    <div onclick="toggleService(4)" id="srv-4" class="service-card group relative p-4 bg-brand-50/50 backdrop-blur-sm rounded-3xl border border-dashed border-brand-300 shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
                         <div class="absolute top-3 right-3 opacity-0 check-icon transition-all duration-300 text-brand-500 transform scale-50 z-10">
                             <i class="fas fa-circle-check text-lg"></i>
                         </div>
-                        <div class="w-10 h-10 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                            <i class="fas fa-bolt"></i>
+                        <button onclick="openCustomServiceModal(event, 4)" class="absolute top-2.5 right-11 w-7 h-7 rounded-full bg-white hover:bg-brand-100 text-gray-400 hover:text-brand-600 border border-brand-100 flex items-center justify-center transition-all z-20 shadow-sm active:scale-95" title="Atur Layanan">
+                            <i class="fas fa-cog text-[10px]"></i>
+                        </button>
+                        <div class="w-10 h-10 rounded-2xl bg-white text-brand-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-brand-100">
+                            <i class="fas fa-star"></i>
                         </div>
-                        <h3 class="font-bold text-brand-900 leading-tight mb-1">Express Setrika</h3>
-                        <p class="text-[11px] text-gray-400 mb-3">Rapih Kilat</p>
+                        <h3 id="label-srv-4-name" class="font-bold text-brand-900 leading-tight mb-1">Custom 2</h3>
+                        <p class="text-[11px] text-gray-400 mb-3">Layanan Pilihan</p>
                         <div class="flex items-center justify-between">
-                            <p class="text-xs font-bold text-brand-600">Rp 7rb<span class="text-[10px] text-gray-400 font-normal">/kg</span></p>
+                            <p class="text-xs font-bold text-brand-600"><span id="label-srv-4-price">Rp 0</span><span id="label-srv-4-unit" class="text-[10px] text-gray-400 font-normal">/pcs</span></p>
                         </div>
-                        <div id="input-area-4" class="hidden mt-3 pt-3 border-t border-brand-50 animate-fade-in-up" onclick="event.stopPropagation()">
-                            <div class="flex items-center bg-brand-50 rounded-xl p-1 border border-brand-100">
+                        <div id="input-area-4" class="hidden mt-3 pt-3 border-t border-brand-100 border-dashed animate-fade-in-up" onclick="event.stopPropagation()">
+                            <div class="flex items-center bg-white rounded-xl p-1 border border-brand-200">
                                 <input type="number" id="input-4" value="1" step="0.1" min="0.1"
                                     class="w-full bg-transparent px-2 py-1 text-sm text-center font-bold text-brand-900 focus:outline-none"
                                     placeholder="0" oninput="updateQty(4, this.value)">
-                                <span class="text-[10px] font-bold text-brand-400 pr-3">KG</span>
+                                <span id="label-srv-4-unit-input" class="text-[10px] font-bold text-brand-400 pr-3">PCS</span>
                             </div>
                         </div>
                     </div>
@@ -276,14 +282,13 @@
                         <div class="absolute top-3 right-3 opacity-0 check-icon transition-all duration-300 text-brand-500 transform scale-50 z-10">
                             <i class="fas fa-circle-check text-lg"></i>
                         </div>
-                        <button onclick="openCustomServiceModal(event)" class="absolute top-2.5 right-11 w-7 h-7 rounded-full bg-white hover:bg-brand-100 text-gray-400 hover:text-brand-600 border border-brand-100 flex items-center justify-center transition-all z-20 shadow-sm active:scale-95" title="Atur Layanan">
+                        <button onclick="openCustomServiceModal(event, 6)" class="absolute top-2.5 right-11 w-7 h-7 rounded-full bg-white hover:bg-brand-100 text-gray-400 hover:text-brand-600 border border-brand-100 flex items-center justify-center transition-all z-20 shadow-sm active:scale-95" title="Atur Layanan">
                             <i class="fas fa-cog text-[10px]"></i>
                         </button>
-                        
                         <div class="w-10 h-10 rounded-2xl bg-white text-brand-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-brand-100">
                             <i class="fas fa-star"></i>
                         </div>
-                        <h3 id="label-srv-6-name" class="font-bold text-brand-900 leading-tight mb-1">Custom</h3>
+                        <h3 id="label-srv-6-name" class="font-bold text-brand-900 leading-tight mb-1">Custom 3</h3>
                         <p class="text-[11px] text-gray-400 mb-3">Layanan Lainnya</p>
                         <div class="flex items-center justify-between">
                             <p class="text-xs font-bold text-brand-600"><span id="label-srv-6-price">Rp 0</span><span id="label-srv-6-unit" class="text-[10px] text-gray-400 font-normal">/pcs</span></p>
@@ -319,7 +324,7 @@
             </div>
 
             <div id="order-list" class="space-y-3">
-                </div>
+            </div>
         </div>
         
         <div id="view-kredit" class="hidden transition-all duration-300 animate-fade-in-up print:hidden relative z-10">
@@ -340,7 +345,7 @@
             </div>
 
             <div id="kredit-list" class="space-y-3">
-                </div>
+            </div>
         </div>
 
         <div id="view-kredit-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
@@ -397,6 +402,7 @@
                 </button>
             </div>
         </div>
+
         <div id="view-order-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="closeOrderDetail()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -409,7 +415,7 @@
                 <div>
                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Data Pelanggan</p>
                     <h3 id="detail-name" class="text-base font-bold text-brand-900 leading-tight">...</h3>
-                    <p id="detail-wa" class="text-xs text-brand-500 font-medium mt-1">...</p>
+                    <p id="detail-address" class="text-xs text-brand-500 font-medium mt-1">...</p>
                     <p id="detail-date" class="text-[10px] text-gray-400 mt-2">...</p>
                 </div>
                 <div class="text-right flex flex-col items-end gap-2">
@@ -622,7 +628,7 @@
                         <div class="flex flex-col">
                             <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Pelanggan</span>
                             <h3 id="ticket-name" class="text-xl font-black text-white leading-tight break-words uppercase tracking-wide">...</h3>
-                            <p id="ticket-wa" class="text-xs text-cyan-500/80 font-mono mt-1">...</p>
+                            <p id="ticket-address" class="text-xs text-cyan-500/80 font-mono mt-1">...</p>
                             <p id="ticket-date" class="text-xs text-slate-500 mt-2 font-mono">...</p>
                         </div>
                         <div class="flex flex-col gap-2.5 items-end">
@@ -665,12 +671,15 @@
     <div id="custom-service-modal" class="fixed inset-0 z-[80] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
         <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl transform scale-95 transition-transform duration-300" id="custom-service-modal-content">
             <div class="flex justify-between items-center p-4 border-b border-brand-100 bg-gradient-to-r from-brand-50 to-sky-50 shrink-0">
-                <h3 class="font-bold text-sm text-brand-900"><i class="fas fa-edit text-brand-500 mr-2"></i>Pengaturan Layanan Custom</h3>
+                <h3 class="font-bold text-sm text-brand-900"><i class="fas fa-edit text-brand-500 mr-2"></i>Pengaturan Layanan</h3>
                 <button onclick="closeCustomServiceModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 hover:text-red-500 shadow-sm transition-colors border border-gray-200">
                     <i class="fas fa-times text-sm"></i>
                 </button>
             </div>
+            
             <div class="p-6 bg-white relative w-full space-y-4">
+                <input type="hidden" id="current-custom-id" value="">
+                
                 <div>
                     <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nama Layanan</label>
                     <input type="text" id="input-custom-name" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 placeholder-gray-400 focus:outline-none focus:bg-brand-50 border border-gray-200 font-medium text-sm" placeholder="Contoh: Cuci Sepatu / Karpet">

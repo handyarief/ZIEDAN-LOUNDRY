@@ -3,10 +3,10 @@ const services = [
     { id: 0, name: "Cuci Komplit", price: 7000, unit: "kg" },
     { id: 1, name: "Setrika Saja", price: 4000, unit: "kg" },
     { id: 2, name: "Bed Cover", price: 25000, unit: "pcs" },
-    { id: 3, name: "Express Cuci Komplit", price: 10000, unit: "kg" },
-    { id: 4, name: "Express Setrika", price: 7000, unit: "kg" },
+    { id: 3, name: "Custom 1", price: 0, unit: "pcs", isCustom: true }, // BARU: Diubah jadi Custom
+    { id: 4, name: "Custom 2", price: 0, unit: "pcs", isCustom: true }, // BARU: Diubah jadi Custom
     { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" },
-    { id: 6, name: "Custom", price: 0, unit: "pcs", isCustom: true } // BARU: Layanan Custom
+    { id: 6, name: "Custom 3", price: 0, unit: "pcs", isCustom: true }  // TETAP CUSTOM
 ];
 
 // --- KONFIGURASI SUPABASE ---
@@ -17,7 +17,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // --- KONSTANTA LOKAL STORAGE ---
 const LS_ORDERS_KEY = 'ziedan_local_orders';
 const LS_PENDING_KEY = 'ziedan_pending_orders';
-const LS_CUSTOM_KEY = 'ziedan_custom_service'; // BARU: Key untuk konfigurasi custom layanan
+const LS_CUSTOM_KEY = 'ziedan_custom_services'; // BARU: Key diubah bentuk jamak (menyimpan object)
 
 // --- STATE MANAGEMENT ---
 let state = {
@@ -57,33 +57,40 @@ function formatRupiah(angka) {
     return "Rp " + angka.toLocaleString('id-ID');
 }
 
-// --- FUNGSI CUSTOM SERVICE (BARU) ---
+// --- FUNGSI CUSTOM SERVICE (BARU & DINAMIS) ---
 function loadCustomService() {
     try {
         const raw = localStorage.getItem(LS_CUSTOM_KEY);
         if (raw) {
             const data = JSON.parse(raw);
-            const customSrv = services.find(s => s.id === 6);
-            if (customSrv) {
-                customSrv.name = data.name;
-                customSrv.price = data.price;
-                customSrv.unit = data.unit;
-            }
+            // Loop khusus ID layanan yang memiliki isCustom: true
+            [3, 4, 6].forEach(id => {
+                if (data[id]) {
+                    const customSrv = services.find(s => s.id === id);
+                    if (customSrv) {
+                        customSrv.name = data[id].name;
+                        customSrv.price = data[id].price;
+                        customSrv.unit = data[id].unit;
+                    }
+                }
+            });
         }
-        updateCustomServiceUI();
+        
+        // Update UI untuk semua Custom Services
+        [3, 4, 6].forEach(id => updateCustomServiceUI(id));
     } catch (e) {
         console.warn("Gagal meload custom service:", e);
     }
 }
 
-function updateCustomServiceUI() {
-    const customSrv = services.find(s => s.id === 6);
+function updateCustomServiceUI(id) {
+    const customSrv = services.find(s => s.id === id);
     if (!customSrv) return;
 
-    const nameEl = document.getElementById('label-srv-6-name');
-    const priceEl = document.getElementById('label-srv-6-price');
-    const unitEl = document.getElementById('label-srv-6-unit');
-    const unitInputEl = document.getElementById('label-srv-6-unit-input');
+    const nameEl = document.getElementById(`label-srv-${id}-name`);
+    const priceEl = document.getElementById(`label-srv-${id}-price`);
+    const unitEl = document.getElementById(`label-srv-${id}-unit`);
+    const unitInputEl = document.getElementById(`label-srv-${id}-unit-input`);
 
     if (nameEl) nameEl.innerText = customSrv.name;
     if (priceEl) priceEl.innerText = formatRupiah(customSrv.price);
@@ -91,11 +98,19 @@ function updateCustomServiceUI() {
     if (unitInputEl) unitInputEl.innerText = customSrv.unit.toUpperCase();
 }
 
-function openCustomServiceModal(event) {
+function openCustomServiceModal(event, id) {
     if (event) event.stopPropagation(); // Mencegah card tertoggle saat klik tombol gear
-    const customSrv = services.find(s => s.id === 6);
     
-    document.getElementById('input-custom-name').value = customSrv.name !== 'Custom' ? customSrv.name : '';
+    const customSrv = services.find(s => s.id === id);
+    if (!customSrv) return;
+
+    // Simpan ID yang sedang diedit ke input hidden
+    document.getElementById('current-custom-id').value = id;
+    
+    // Cek apakah nama masih default bawaan sistem
+    const isDefaultName = (customSrv.name.startsWith('Custom '));
+    
+    document.getElementById('input-custom-name').value = !isDefaultName ? customSrv.name : '';
     document.getElementById('input-custom-price').value = customSrv.price > 0 ? customSrv.price : '';
     
     if (customSrv.unit.toLowerCase() === 'kg') {
@@ -150,6 +165,7 @@ function refreshRadioUI() {
 }
 
 function saveCustomServiceConfig() {
+    const id = parseInt(document.getElementById('current-custom-id').value);
     const nameVal = document.getElementById('input-custom-name').value.trim();
     const priceVal = parseInt(document.getElementById('input-custom-price').value);
     const isKg = document.getElementById('unit-kg').checked;
@@ -163,25 +179,34 @@ function saveCustomServiceConfig() {
         return;
     }
 
-    const customSrv = services.find(s => s.id === 6);
+    const customSrv = services.find(s => s.id === id);
     if (customSrv) {
         customSrv.name = nameVal;
         customSrv.price = priceVal;
         customSrv.unit = isKg ? 'kg' : 'pcs';
 
-        localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify({
+        // Ambil data yang sudah ada di localStorage, atau buat object baru
+        let storedData = {};
+        try {
+            const raw = localStorage.getItem(LS_CUSTOM_KEY);
+            if (raw) storedData = JSON.parse(raw);
+        } catch (e) {}
+
+        // Update data khusus untuk ID ini
+        storedData[id] = {
             name: customSrv.name,
             price: customSrv.price,
             unit: customSrv.unit
-        }));
+        };
+
+        localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify(storedData));
         
-        updateCustomServiceUI();
+        updateCustomServiceUI(id);
         hitungTotal(); // Update total jika layanan ini sedang aktif dipilih
     }
 
     closeCustomServiceModal();
 }
-
 // --- HELPER BACA & TULIS LOKAL STORAGE ---
 function getLocalOrders() {
     try {
@@ -313,7 +338,7 @@ function navTo(page) {
 
 // --- FUNGSI UTAMA ---
 function initApp() {
-    loadCustomService(); // BARU: Panggil konfigurasi layanan custom dari lokal storage saat aplikasi dimuat
+    loadCustomService(); // BARU: Memuat seluruh konfigurasi multi-custom dari local storage
 
     services.forEach(srv => {
         const input = document.getElementById(`input-${srv.id}`);
@@ -361,7 +386,7 @@ function updateServiceUI() {
         } else {
             card.classList.remove('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
             
-            if (idx === 6) { 
+            if ([3, 4, 6].includes(idx)) { // BARU: Menyesuaikan style border dashed untuk seluruh card custom
                 card.classList.add('border-dashed', 'border-brand-300');
                 card.classList.remove('border-white');
             } else { 
@@ -400,7 +425,7 @@ function hitungTotal() {
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
-    const wa = document.getElementById('custWa').value.trim();
+    const alamat = document.getElementById('custAddress').value.trim(); // DIUBAH: Membaca alamat rumah
     
     if (!nama) {
         shakeElement('custName');
@@ -412,15 +437,20 @@ async function prosesPesanan() {
         return;
     }
     
-    // Validasi layanan custom jika harganya 0
-    if (state.selectedServiceIds.includes(6)) {
-        const customSrv = services.find(s => s.id === 6);
-        if (customSrv.price <= 0 || customSrv.name === 'Custom') {
-            alert("Harap atur Nama dan Harga Layanan Custom terlebih dahulu (Klik icon Gerigi)!");
-            shakeElement('srv-6');
-            return;
+    // BARU: Validasi cerdas untuk mengecek semua layanan bertipe Custom yang dipilih
+    let hasInvalidCustom = false;
+    state.selectedServiceIds.forEach(id => {
+        const srv = services.find(s => s.id === id);
+        if (srv && srv.isCustom) {
+            // Jika harga masih 0 atau namanya masih nama default (Custom 1, 2, 3), cegah proses simpan
+            if (srv.price <= 0 || srv.name === 'Custom ' + (id === 3 ? '1' : id === 4 ? '2' : '3')) {
+                alert(`Harap atur Nama dan Harga Layanan ${srv.name} terlebih dahulu (Klik icon Gerigi)!`);
+                shakeElement(`srv-${id}`);
+                hasInvalidCustom = true;
+            }
         }
-    }
+    });
+    if (hasInvalidCustom) return;
     
     const btnSimpan = document.querySelector('#footer-total button');
     const originalText = btnSimpan.innerHTML;
@@ -434,7 +464,7 @@ async function prosesPesanan() {
 
     const newOrder = {
         customer: nama,
-        whatsapp: wa || null,
+        whatsapp: alamat || null, // INTEGRITAS: Nilai alamat dipetakan ke field whatsapp agar database tidak perlu diubah
         date: new Date().toISOString(),
         payment: 'cash',
         status: 'baru', 
@@ -532,7 +562,6 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
-
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -628,6 +657,7 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
+
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -669,7 +699,6 @@ function renderOrderList() {
 
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
-        // UPDATE UI: Implementasi Stacked Layout (Mobile-First)
         return `
         <div class="bg-white rounded-xl p-4 shadow-sm border ${order._isPending ? 'border-orange-200' : 'border-brand-100'} mb-3 hover:bg-brand-50 transition-colors cursor-pointer relative" onclick="openOrderDetail(${idAttr})">
             ${pendingBadge}
@@ -705,13 +734,13 @@ function openOrderDetail(id) {
     const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
 
     const detailName = document.getElementById('detail-name');
-    const detailWa = document.getElementById('detail-wa');
+    const detailAddress = document.getElementById('detail-address'); // DIUBAH: Menggunakan id detail-address
     const detailDate = document.getElementById('detail-date');
     const detailTotal = document.getElementById('detail-total');
     const detailItems = document.getElementById('detail-items');
 
     if(detailName) detailName.innerText = order.customer;
-    if(detailWa) detailWa.innerText = order.whatsapp ? order.whatsapp : '-';
+    if(detailAddress) detailAddress.innerText = order.whatsapp ? order.whatsapp : '-'; // Memasukkan data alamat rumah
     if(detailDate) detailDate.innerText = formatTanggalLokal(order.date);
     if(detailTotal) detailTotal.innerText = formatRupiah(order.total);
 
@@ -728,13 +757,13 @@ function openOrderDetail(id) {
     }
 
     const ticketName = document.getElementById('ticket-name');
-    const ticketWa = document.getElementById('ticket-wa');
+    const ticketAddress = document.getElementById('ticket-address'); // DIUBAH: Menggunakan id ticket-address
     const ticketDate = document.getElementById('ticket-date');
     const ticketTotal = document.getElementById('ticket-total');
     const ticketItems = document.getElementById('ticket-items');
 
     if(ticketName) ticketName.innerText = order.customer;
-    if(ticketWa) ticketWa.innerText = order.whatsapp ? order.whatsapp : '-';
+    if(ticketAddress) ticketAddress.innerText = order.whatsapp ? order.whatsapp : '-'; // Memasukkan data alamat rumah
     if(ticketDate) ticketDate.innerText = formatTanggalLokal(order.date);
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
@@ -1003,14 +1032,12 @@ function renderKreditList() {
         const sisa = data.totalAmount - data.paidAmount;
         const nameStr = data.displayName.replace(/'/g, "\\'"); 
         
-        // UPDATE UI: Badge status & warna nominal yang cerdas
         let isLunas = sisa <= 0;
         let sisaColorClass = isLunas ? 'text-green-500' : 'text-red-500';
         let badgeSisaHtml = isLunas
             ? `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded shadow-sm bg-green-50 text-green-600 border-green-100 uppercase">LUNAS</span>`
             : `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded shadow-sm bg-red-50 text-red-600 border-red-100 uppercase">BLM LUNAS</span>`;
 
-        // UPDATE UI: Implementasi Stacked Layout (Mobile-First) untuk Data Kredit
         return `
         <div class="bg-white rounded-xl p-4 shadow-sm border border-red-100 mb-3 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
             <div class="grid grid-cols-[32px_1fr_auto_32px] gap-3 items-center">
@@ -1037,6 +1064,7 @@ function renderKreditList() {
         `;
     }).join('');
 }
+
 // --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
@@ -1328,7 +1356,7 @@ function downloadKreditTicket() {
 // --- UTILITIES LAINNYA ---
 function resetForm() {
     document.getElementById('custName').value = "";
-    document.getElementById('custWa').value = "";
+    document.getElementById('custAddress').value = ""; // DIUBAH: Mengosongkan form input alamat rumah
     state.selectedServiceIds = [];
     state.quantities = {};
     state.total = 0;
@@ -1353,4 +1381,5 @@ function shakeElement(id) {
     }
 }
 
+// Jalankan aplikasi pertama kali
 initApp();
