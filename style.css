@@ -21,7 +21,6 @@ body {
 #main-content::-webkit-scrollbar-thumb,
 #ticket-area::-webkit-scrollbar-thumb,
 #kredit-ticket-area::-webkit-scrollbar-thumb {
-    /* UPDATE: Disesuaikan menjadi sedikit lebih cyan/neon agar selaras dengan tema dark futuristik */
     background-color: rgba(34, 211, 238, 0.3);
     border-radius: 20px;
 }
@@ -82,6 +81,16 @@ body {
 /* --- UTILITIES --- */
 input:focus {
     box-shadow: none;
+}
+
+/* Menyembunyikan panah/spinner bawaan browser untuk UI Stepper Bed Cover */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
 }
 
 .service-card:active, header button:active, #menu-overlay button:active {

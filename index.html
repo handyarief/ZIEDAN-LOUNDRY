@@ -190,7 +190,8 @@
                         </div>
                     </div>
                     
-                    <div onclick="toggleService(2)" id="srv-2" class="service-card group relative p-4 bg-white/90 backdrop-blur-sm rounded-3xl border border-brand-300 border-dashed shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
+                    <!-- REVISI PREMIUM: Card Bed Cover dengan Sistem Accordion & Multi-Variant -->
+                    <div onclick="toggleBedCoverAccordion()" id="srv-2" class="service-card group relative p-4 bg-white/90 backdrop-blur-sm rounded-3xl border border-brand-300 border-dashed shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
                         <div class="absolute top-3 right-3 opacity-0 check-icon transition-all duration-300 text-brand-500 transform scale-50 z-10">
                             <i class="fas fa-circle-check text-lg"></i>
                         </div>
@@ -201,17 +202,53 @@
                             <i class="fas fa-bed"></i>
                         </div>
                         <h3 id="label-srv-2-name" class="font-bold text-brand-900 leading-tight mb-1">Bed Cover</h3>
-                        <p class="text-[11px] text-gray-400 mb-3">Segala Ukuran</p>
+                        <p class="text-[11px] text-gray-400 mb-3">Multi-Ukuran (K/S/B)</p>
                         <div class="flex items-center justify-between">
-                            <p class="text-xs font-bold text-brand-600"><span id="label-srv-2-price">Rp 25.000</span><span id="label-srv-2-unit" class="text-[10px] text-gray-400 font-normal">/pcs</span></p>
+                            <p class="text-xs font-bold text-brand-600">Premium Care<span class="text-[10px] text-gray-400 font-normal ml-1">/pcs</span></p>
                         </div>
-                        <div id="input-area-2" class="hidden mt-3 pt-3 border-t border-brand-50 animate-fade-in-up" onclick="event.stopPropagation()">
-                            <div class="flex items-center bg-brand-50 rounded-xl p-1 border border-brand-100">
-                                <input type="number" id="input-2" value="1" step="1" min="1"
-                                    class="w-full bg-transparent px-2 py-1 text-sm text-center font-bold text-brand-900 focus:outline-none"
-                                    placeholder="0" oninput="updateQty(2, this.value)">
-                                <span id="label-srv-2-unit-input" class="text-[10px] font-bold text-brand-400 pr-3">PCS</span>
+                        
+                        <!-- Area Input Dropdown Premium Bersifat Mandiri -->
+                        <div id="input-area-2" class="hidden mt-3 pt-3 border-t border-brand-100 space-y-2 animate-fade-in-up" onclick="event.stopPropagation()">
+                            
+                            <!-- Ukuran Kecil -->
+                            <div class="flex items-center justify-between bg-brand-50/60 p-2 rounded-xl border border-brand-100/80">
+                                <div class="flex flex-col text-left pl-1">
+                                    <span id="label-srv-21-name" class="text-xs font-bold text-brand-900">BC Kecil</span>
+                                    <span id="label-srv-21-price" class="text-[10px] font-bold text-brand-600">Rp 15.000</span>
+                                </div>
+                                <div class="flex items-center bg-white rounded-lg border border-brand-200 p-0.5 shadow-sm">
+                                    <button onclick="stepSubQty(21, -1)" class="w-6 h-6 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center active:scale-90 transition-all text-xs">-</button>
+                                    <input type="number" id="input-21" value="0" min="0" class="w-7 bg-transparent text-center font-bold text-xs text-brand-900 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" oninput="directSubQtyInput(21, this.value)">
+                                    <button onclick="stepSubQty(21, 1)" class="w-6 h-6 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center active:scale-90 transition-all text-xs">+</button>
+                                </div>
                             </div>
+
+                            <!-- Ukuran Sedang -->
+                            <div class="flex items-center justify-between bg-brand-50/60 p-2 rounded-xl border border-brand-100/80">
+                                <div class="flex flex-col text-left pl-1">
+                                    <span id="label-srv-22-name" class="text-xs font-bold text-brand-900">BC Sedang</span>
+                                    <span id="label-srv-22-price" class="text-[10px] font-bold text-brand-600">Rp 20.000</span>
+                                </div>
+                                <div class="flex items-center bg-white rounded-lg border border-brand-200 p-0.5 shadow-sm">
+                                    <button onclick="stepSubQty(22, -1)" class="w-6 h-6 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center active:scale-90 transition-all text-xs">-</button>
+                                    <input type="number" id="input-22" value="0" min="0" class="w-7 bg-transparent text-center font-bold text-xs text-brand-900 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" oninput="directSubQtyInput(22, this.value)">
+                                    <button onclick="stepSubQty(22, 1)" class="w-6 h-6 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center active:scale-90 transition-all text-xs">+</button>
+                                </div>
+                            </div>
+
+                            <!-- Ukuran Besar -->
+                            <div class="flex items-center justify-between bg-brand-50/60 p-2 rounded-xl border border-brand-100/80">
+                                <div class="flex flex-col text-left pl-1">
+                                    <span id="label-srv-23-name" class="text-xs font-bold text-brand-900">BC Besar</span>
+                                    <span id="label-srv-23-price" class="text-[10px] font-bold text-brand-600">Rp 25.000</span>
+                                </div>
+                                <div class="flex items-center bg-white rounded-lg border border-brand-200 p-0.5 shadow-sm">
+                                    <button onclick="stepSubQty(23, -1)" class="w-6 h-6 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center active:scale-90 transition-all text-xs">-</button>
+                                    <input type="number" id="input-23" value="0" min="0" class="w-7 bg-transparent text-center font-bold text-xs text-brand-900 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" oninput="directSubQtyInput(23, this.value)">
+                                    <button onclick="stepSubQty(23, 1)" class="w-6 h-6 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center active:scale-90 transition-all text-xs">+</button>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                     <div onclick="toggleService(5)" id="srv-5" class="service-card group relative p-4 bg-white/90 backdrop-blur-sm rounded-3xl border border-brand-300 border-dashed shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
@@ -317,6 +354,7 @@
                 </div>
             </section>
         </div>
+        
         <div id="view-orders" class="hidden transition-all duration-300 animate-fade-in-up print:hidden relative z-10">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="backToHome()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -358,7 +396,6 @@
             <div id="kredit-list" class="space-y-3">
             </div>
         </div>
-
         <div id="view-kredit-detail" class="hidden transition-all duration-300 animate-fade-in-up relative z-10 print:hidden">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="closeKreditDetail()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
@@ -536,7 +573,6 @@
                         </div>
                         <h1 class="font-black text-3xl tracking-tighter text-cyan-400 uppercase leading-none drop-shadow-[0_2px_10px_rgba(34,211,238,0.4)]">ZIEDAN LAUNDRY</h1>
                         <span class="text-[10px] text-cyan-400/80 font-bold mt-2 tracking-[0.3em] uppercase">Premium Wash & Care</span>
-                        
                         <span class="text-[9px] text-cyan-500/70 font-medium mt-1.5 tracking-widest uppercase">PNR BLOK MJ 24 | WA: 087779179533</span>
 
                         <div class="mt-5 bg-cyan-950/50 text-cyan-300 border border-cyan-800/50 text-[11px] font-black px-5 py-2 rounded-full uppercase tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.1)] backdrop-blur-sm">REKAP TAGIHAN</div>
@@ -582,10 +618,6 @@
                             <span id="kt-sisa" class="text-2xl font-mono font-black text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]">...</span>
                         </div>
                     </div>
-
-                    <div class="text-center pb-3">
-                        <p class="text-[10px] text-slate-500 font-medium uppercase tracking-[0.2em]">Terima kasih atas kepercayaannya</p>
-                    </div>
                 </div>
             </div> 
 
@@ -623,7 +655,6 @@
                         
                         <h1 class="font-black text-3xl tracking-tighter text-cyan-400 uppercase leading-none drop-shadow-[0_2px_10px_rgba(34,211,238,0.4)]">ZIEDAN LAUNDRY</h1>
                         <span class="text-[10px] text-cyan-400/80 font-bold mt-2 tracking-[0.3em] uppercase">Premium Wash & Care</span>
-                        
                         <span class="text-[9px] text-cyan-500/70 font-medium mt-1.5 tracking-widest uppercase">PNR BLOK MJ 24 | WA: 087779179533</span>
 
                         <div class="mt-5 bg-cyan-950/50 text-cyan-300 border border-cyan-800/50 text-[11px] font-black px-5 py-2 rounded-full uppercase tracking-widest shadow-[0_0_10px_rgba(6,182,212,0.1)] backdrop-blur-sm">BUKTI PEMBAYARAN</div>
@@ -663,10 +694,6 @@
                         <span class="text-xs text-cyan-400 font-bold uppercase tracking-widest pl-2">Total Tagihan</span>
                         <span id="ticket-total" class="text-2xl font-mono font-black text-white drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">...</span>
                     </div>
-
-                    <div class="text-center pb-3">
-                        <p class="text-[10px] text-slate-500 font-medium uppercase tracking-[0.2em]">Terima kasih atas kepercayaannya</p>
-                    </div>
                 </div>
             </div> 
 
@@ -688,30 +715,48 @@
                 </button>
             </div>
             
-            <div class="p-6 bg-white relative w-full space-y-4">
+            <div class="p-6 bg-white relative w-full">
                 <input type="hidden" id="current-custom-id" value="">
                 
-                <div>
-                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nama Layanan</label>
-                    <input type="text" id="input-custom-name" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 placeholder-gray-400 focus:outline-none focus:bg-brand-50 border border-gray-200 font-medium text-sm" placeholder="Contoh: Cuci Sepatu / Karpet">
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Harga (Rp)</label>
-                    <input type="number" id="input-custom-price" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 placeholder-gray-400 focus:outline-none focus:bg-brand-50 border border-gray-200 font-bold text-sm" placeholder="0">
-                </div>
-                <div>
-                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Satuan</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-pointer select-none transition-all" id="label-unit-kg">
-                            <input type="radio" name="custom-unit" value="kg" id="unit-kg" class="hidden" onchange="refreshRadioUI()">
-                            <span>KG</span>
-                        </label>
-                        <label class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-pointer select-none transition-all" id="label-unit-pcs">
-                            <input type="radio" name="custom-unit" value="pcs" id="unit-pcs" checked class="hidden" onchange="refreshRadioUI()">
-                            <span>PCS</span>
-                        </label>
+                <div id="modal-standard-inputs" class="space-y-4">
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nama Layanan</label>
+                        <input type="text" id="input-custom-name" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 placeholder-gray-400 focus:outline-none focus:bg-brand-50 border border-gray-200 font-medium text-sm" placeholder="Contoh: Cuci Sepatu / Karpet">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Harga (Rp)</label>
+                        <input type="number" id="input-custom-price" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 placeholder-gray-400 focus:outline-none focus:bg-brand-50 border border-gray-200 font-bold text-sm" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Satuan</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-pointer select-none transition-all" id="label-unit-kg">
+                                <input type="radio" name="custom-unit" value="kg" id="unit-kg" class="hidden" onchange="refreshRadioUI()">
+                                <span>KG</span>
+                            </label>
+                            <label class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-bold text-xs cursor-pointer select-none transition-all" id="label-unit-pcs">
+                                <input type="radio" name="custom-unit" value="pcs" id="unit-pcs" checked class="hidden" onchange="refreshRadioUI()">
+                                <span>PCS</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
+
+                <div id="modal-bedcover-inputs" class="hidden space-y-3">
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Harga BC Kecil (Rp)</label>
+                        <input type="number" id="input-bc-kecil" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 focus:outline-none focus:bg-brand-50 border border-gray-200 font-bold text-sm" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Harga BC Sedang (Rp)</label>
+                        <input type="number" id="input-bc-sedang" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 focus:outline-none focus:bg-brand-50 border border-gray-200 font-bold text-sm" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Harga BC Besar (Rp)</label>
+                        <input type="number" id="input-bc-besar" class="w-full px-4 py-3 bg-gray-50 rounded-xl text-brand-900 focus:outline-none focus:bg-brand-50 border border-gray-200 font-bold text-sm" placeholder="0">
+                    </div>
+                </div>
+
             </div>
             <div class="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
                 <button onclick="saveCustomServiceConfig()" class="w-full bg-brand-500 hover:bg-brand-600 text-white text-sm font-extrabold py-4 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md">

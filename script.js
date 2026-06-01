@@ -2,7 +2,10 @@
 const services = [
     { id: 0, name: "Cuci Komplit", price: 7000, unit: "kg" },
     { id: 1, name: "Setrika Saja", price: 4000, unit: "kg" },
-    { id: 2, name: "Bed Cover", price: 25000, unit: "pcs" },
+    { id: 2, name: "Bed Cover", price: 0, unit: "pcs", isParent: true }, // REVISI: Hanya sebagai UI Parent
+    { id: 21, name: "BC Kecil", price: 15000, unit: "pcs" },              // REVISI: Varian Baru
+    { id: 22, name: "BC Sedang", price: 20000, unit: "pcs" },             // REVISI: Varian Baru
+    { id: 23, name: "BC Besar", price: 25000, unit: "pcs" },              // REVISI: Varian Baru
     { id: 3, name: "Custom 1", price: 0, unit: "pcs", isCustom: true }, 
     { id: 4, name: "Custom 2", price: 0, unit: "pcs", isCustom: true }, 
     { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" },
@@ -23,7 +26,8 @@ const LS_CUSTOM_KEY = 'ziedan_custom_services';
 let state = {
     selectedServiceIds: [], 
     quantities: {}, 
-    total: 0
+    total: 0,
+    isBedCoverOpen: false // REVISI: State untuk Accordion Bed Cover
 };
 let allOrders = [];
 let currentOrderId = null;
@@ -63,8 +67,6 @@ function loadCustomService() {
         const raw = localStorage.getItem(LS_CUSTOM_KEY);
         if (raw) {
             const data = JSON.parse(raw);
-            // MODIFIKASI: Sekarang melooping SEMUA layanan, bukan hanya ID 3, 4, 6
-            // agar perubahan harga layanan default juga bersifat permanen
             services.forEach(srv => {
                 if (data[srv.id]) {
                     srv.name = data[srv.id].name;
@@ -74,7 +76,6 @@ function loadCustomService() {
             });
         }
         
-        // MODIFIKASI: Update UI untuk semua Services yang ada (ID 0 - 6)
         services.forEach(srv => updateCustomServiceUI(srv.id));
     } catch (e) {
         console.warn("Gagal meload custom service:", e);
@@ -104,17 +105,36 @@ function openCustomServiceModal(event, id) {
 
     document.getElementById('current-custom-id').value = id;
     
-    const isDefaultName = (customSrv.name.startsWith('Custom '));
+    const standardInputs = document.getElementById('modal-standard-inputs');
+    const bedcoverInputs = document.getElementById('modal-bedcover-inputs');
     
-    document.getElementById('input-custom-name').value = !isDefaultName ? customSrv.name : '';
-    document.getElementById('input-custom-price').value = customSrv.price > 0 ? customSrv.price : '';
-    
-    if (customSrv.unit.toLowerCase() === 'kg') {
-        document.getElementById('unit-kg').checked = true;
+    // REVISI PREMIUM: Logic pemisahan tampilan input modal (Bed Cover vs Layanan Biasa)
+    if (id === 2) {
+        if(standardInputs) standardInputs.classList.add('hidden');
+        if(bedcoverInputs) bedcoverInputs.classList.remove('hidden');
+        
+        const srv21 = services.find(s => s.id === 21);
+        const srv22 = services.find(s => s.id === 22);
+        const srv23 = services.find(s => s.id === 23);
+        
+        if (srv21) document.getElementById('input-bc-kecil').value = srv21.price;
+        if (srv22) document.getElementById('input-bc-sedang').value = srv22.price;
+        if (srv23) document.getElementById('input-bc-besar').value = srv23.price;
     } else {
-        document.getElementById('unit-pcs').checked = true;
+        if(standardInputs) standardInputs.classList.remove('hidden');
+        if(bedcoverInputs) bedcoverInputs.classList.add('hidden');
+        
+        const isDefaultName = (customSrv.name.startsWith('Custom '));
+        document.getElementById('input-custom-name').value = !isDefaultName ? customSrv.name : '';
+        document.getElementById('input-custom-price').value = customSrv.price > 0 ? customSrv.price : '';
+        
+        if (customSrv.unit.toLowerCase() === 'kg') {
+            document.getElementById('unit-kg').checked = true;
+        } else {
+            document.getElementById('unit-pcs').checked = true;
+        }
+        refreshRadioUI();
     }
-    refreshRadioUI();
 
     const modal = document.getElementById('custom-service-modal');
     const modalContent = document.getElementById('custom-service-modal-content');
@@ -162,46 +182,70 @@ function refreshRadioUI() {
 
 function saveCustomServiceConfig() {
     const id = parseInt(document.getElementById('current-custom-id').value);
-    const nameVal = document.getElementById('input-custom-name').value.trim();
-    const priceVal = parseInt(document.getElementById('input-custom-price').value);
-    const isKg = document.getElementById('unit-kg').checked;
+    
+    let storedData = {};
+    try {
+        const raw = localStorage.getItem(LS_CUSTOM_KEY);
+        if (raw) storedData = JSON.parse(raw);
+    } catch (e) {}
 
-    if (!nameVal) {
-        alert("Nama layanan tidak boleh kosong!");
-        return;
-    }
-    if (isNaN(priceVal) || priceVal < 0) {
-        alert("Harga layanan tidak valid!");
-        return;
-    }
-
-    const customSrv = services.find(s => s.id === id);
-    if (customSrv) {
-        customSrv.name = nameVal;
-        customSrv.price = priceVal;
-        customSrv.unit = isKg ? 'kg' : 'pcs';
-
-        let storedData = {};
-        try {
-            const raw = localStorage.getItem(LS_CUSTOM_KEY);
-            if (raw) storedData = JSON.parse(raw);
-        } catch (e) {}
-
-        storedData[id] = {
-            name: customSrv.name,
-            price: customSrv.price,
-            unit: customSrv.unit
-        };
-
+    // REVISI PREMIUM: Logic simpan Multi-Varian Harga Bed Cover
+    if (id === 2) {
+        const price21 = parseInt(document.getElementById('input-bc-kecil').value) || 0;
+        const price22 = parseInt(document.getElementById('input-bc-sedang').value) || 0;
+        const price23 = parseInt(document.getElementById('input-bc-besar').value) || 0;
+        
+        const srv21 = services.find(s => s.id === 21);
+        const srv22 = services.find(s => s.id === 22);
+        const srv23 = services.find(s => s.id === 23);
+        
+        if (srv21) { srv21.price = price21; storedData[21] = { name: srv21.name, price: price21, unit: 'pcs' }; }
+        if (srv22) { srv22.price = price22; storedData[22] = { name: srv22.name, price: price22, unit: 'pcs' }; }
+        if (srv23) { srv23.price = price23; storedData[23] = { name: srv23.name, price: price23, unit: 'pcs' }; }
+        
         localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify(storedData));
         
-        updateCustomServiceUI(id);
+        updateCustomServiceUI(21);
+        updateCustomServiceUI(22);
+        updateCustomServiceUI(23);
         hitungTotal(); 
+        
+    } else {
+        // Logic Standard untuk layanan lainnya
+        const nameVal = document.getElementById('input-custom-name').value.trim();
+        const priceVal = parseInt(document.getElementById('input-custom-price').value);
+        const isKg = document.getElementById('unit-kg').checked;
+
+        if (!nameVal) {
+            alert("Nama layanan tidak boleh kosong!");
+            return;
+        }
+        if (isNaN(priceVal) || priceVal < 0) {
+            alert("Harga layanan tidak valid!");
+            return;
+        }
+
+        const customSrv = services.find(s => s.id === id);
+        if (customSrv) {
+            customSrv.name = nameVal;
+            customSrv.price = priceVal;
+            customSrv.unit = isKg ? 'kg' : 'pcs';
+
+            storedData[id] = {
+                name: customSrv.name,
+                price: customSrv.price,
+                unit: customSrv.unit
+            };
+
+            localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify(storedData));
+            
+            updateCustomServiceUI(id);
+            hitungTotal(); 
+        }
     }
 
     closeCustomServiceModal();
 }
-
 // --- HELPER BACA & TULIS LOKAL STORAGE ---
 function getLocalOrders() {
     try {
@@ -331,21 +375,69 @@ function navTo(page) {
     toggleMenu(); 
 }
 
-// --- FUNGSI UTAMA ---
+// --- FUNGSI UTAMA & INISIALISASI ---
 function initApp() {
     loadCustomService(); 
 
     services.forEach(srv => {
         const input = document.getElementById(`input-${srv.id}`);
-        if(input) input.value = 1;
-        state.quantities[srv.id] = 1;
+        // Reset qty: jika bed cover varian (21,22,23) maka 0, lainnya 1
+        const initialQty = (srv.id === 21 || srv.id === 22 || srv.id === 23) ? 0 : 1;
+        if(input) input.value = initialQty;
+        state.quantities[srv.id] = initialQty;
     });
     hitungTotal();
     fetchOrders(); 
     setTimeout(() => syncPendingOrders(), 2000);
 }
 
+// REVISI PREMIUM: Fungsi Logika untuk Card Bed Cover Accordion
+function toggleBedCoverAccordion() {
+    state.isBedCoverOpen = !state.isBedCoverOpen;
+    const inputArea = document.getElementById('input-area-2');
+    
+    if (state.isBedCoverOpen) {
+        if (inputArea) inputArea.classList.remove('hidden');
+    } else {
+        if (inputArea) inputArea.classList.add('hidden');
+    }
+}
+
+// REVISI PREMIUM: Fungsi Stepper Varian
+function stepSubQty(id, change) {
+    if (event) event.stopPropagation(); // Mencegah Accordion tertutup
+    const currentVal = state.quantities[id] || 0;
+    let newVal = currentVal + change;
+    if (newVal < 0) newVal = 0;
+    
+    directSubQtyInput(id, newVal);
+}
+
+function directSubQtyInput(id, value) {
+    if (event) event.stopPropagation();
+    let val = parseInt(value);
+    if (isNaN(val) || val < 0) val = 0;
+    
+    state.quantities[id] = val;
+    const inputField = document.getElementById(`input-${id}`);
+    if (inputField) inputField.value = val;
+    
+    // Auto Update Select/Deselect Varian ke Array Master
+    const serviceIndex = state.selectedServiceIds.indexOf(id);
+    if (val > 0 && serviceIndex === -1) {
+        state.selectedServiceIds.push(id);
+    } else if (val === 0 && serviceIndex > -1) {
+        state.selectedServiceIds.splice(serviceIndex, 1);
+    }
+    
+    updateServiceUI();
+    hitungTotal();
+}
+
 function toggleService(index) {
+    // Abaikan jika ID 2 dipanggil dari fungsi lama
+    if(index === 2) return; 
+
     const serviceIndex = state.selectedServiceIds.indexOf(index);
     const inputArea = document.getElementById(`input-area-${index}`);
     const inputField = document.getElementById(`input-${index}`);
@@ -366,14 +458,26 @@ function toggleService(index) {
 }
 
 function updateServiceUI() {
-    // MODIFIKASI: Menggunakan srv.id agar mapping selalu tepat pada elemennya
     services.forEach((srv) => {
         const idx = srv.id;
+        // Skip updating varian id untuk UI, karena UI card nya adalah Parent ID 2
+        if(idx === 21 || idx === 22 || idx === 23) return; 
+
         const card = document.getElementById(`srv-${idx}`);
         const checkIcon = card?.querySelector('.check-icon');
         if (!card) return;
         
-        if (state.selectedServiceIds.includes(idx)) {
+        let isActive = false;
+        
+        // REVISI PREMIUM: Logic Active State Card Bed Cover Parent
+        if (idx === 2) {
+            const hasQty = (state.quantities[21] > 0 || state.quantities[22] > 0 || state.quantities[23] > 0);
+            isActive = hasQty;
+        } else {
+            isActive = state.selectedServiceIds.includes(idx);
+        }
+
+        if (isActive) {
             card.classList.remove('border-white', 'shadow-sm', 'border-dashed', 'border-brand-300');
             card.classList.add('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
             if(checkIcon) {
@@ -382,9 +486,6 @@ function updateServiceUI() {
             }
         } else {
             card.classList.remove('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
-            
-            // MODIFIKASI: Karena sekarang SELURUH layanan bersifat fleksibel (bisa diedit), 
-            // maka secara default Card akan memiliki border dashed sebagai indikator
             card.classList.add('border-dashed', 'border-brand-300');
             card.classList.remove('border-white');
             
@@ -407,7 +508,7 @@ function hitungTotal() {
     state.total = 0;
     state.selectedServiceIds.forEach(id => {
         const service = services.find(s => s.id === id);
-        if (service) {
+        if (service && !service.isParent) { // Jangan hitung parent
             const qty = state.quantities[id] || 0;
             state.total += (qty * service.price);
         }
@@ -718,7 +819,7 @@ function renderOrderList() {
         `;
     }).join('');
 }
-
+// --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id == id);
     if (!order) return;
@@ -994,7 +1095,7 @@ function closeOrderDetail() {
     document.getElementById('view-orders').classList.remove('hidden');
 }
 
-// --- RENDER KREDIT LIST ---
+// --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
     const kreditOrders = allOrders.filter(o => o.payment === 'kredit');
@@ -1058,7 +1159,6 @@ function renderKreditList() {
     }).join('');
 }
 
-// --- RINCIAN KREDIT ---
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
     currentDetailKreditName = targetName;
@@ -1133,7 +1233,6 @@ function closeKreditDetail() {
     renderKreditList();
 }
 
-// --- LOGIKA PEMBAYARAN KREDIT (MODAL & PROSES) ---
 function openModalBayarKredit() {
     document.getElementById('kredit-pay-sisa').innerText = formatRupiah(window.currentSisaKredit || 0);
     document.getElementById('input-kredit-pay').value = '';
@@ -1216,11 +1315,9 @@ async function prosesBayarKredit() {
     btn.innerHTML = originalHtml;
     btn.disabled = false;
     closeModalBayarKredit();
-    
     openKreditDetail(currentDetailKreditName);
 }
 
-// --- LOGIKA CETAK NOTA KREDIT ---
 function cetakRekapKredit() {
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
     
@@ -1231,7 +1328,6 @@ function cetakRekapKredit() {
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
-        
         const tagLunas = isLunas ? ` <span class="text-[9px] bg-emerald-950/50 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
@@ -1346,7 +1442,6 @@ function downloadKreditTicket() {
     });
 }
 
-// --- UTILITIES LAINNYA ---
 function resetForm() {
     document.getElementById('custName').value = "";
     document.getElementById('custAddress').value = ""; 
@@ -1354,12 +1449,23 @@ function resetForm() {
     state.quantities = {};
     state.total = 0;
     
+    // REVISI PREMIUM: Tutup Accordion dan reset input Stepper Varian
+    state.isBedCoverOpen = false;
+    const inputAreaBedCover = document.getElementById('input-area-2');
+    if(inputAreaBedCover) inputAreaBedCover.classList.add('hidden');
+
     services.forEach(srv => {
         const inputArea = document.getElementById(`input-area-${srv.id}`);
         const inputField = document.getElementById(`input-${srv.id}`);
-        if(inputArea) inputArea.classList.add('hidden');
-        if(inputField) inputField.value = 1;
-        state.quantities[srv.id] = 1;
+        
+        if (srv.id === 21 || srv.id === 22 || srv.id === 23) {
+            if(inputField) inputField.value = 0;
+            state.quantities[srv.id] = 0;
+        } else {
+            if(inputArea) inputArea.classList.add('hidden');
+            if(inputField) inputField.value = 1;
+            state.quantities[srv.id] = 1;
+        }
     });
     
     updateServiceUI();
