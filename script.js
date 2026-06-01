@@ -2,10 +2,11 @@
 const services = [
     { id: 0, name: "Cuci Komplit", price: 7000, unit: "kg" },
     { id: 1, name: "Setrika Saja", price: 4000, unit: "kg" },
-    { id: 2, name: "Bed Cover", price: 0, unit: "pcs", isParent: true }, // REVISI: Hanya sebagai UI Parent
-    { id: 21, name: "BC Kecil", price: 15000, unit: "pcs" },              // REVISI: Varian Baru
-    { id: 22, name: "BC Sedang", price: 20000, unit: "pcs" },             // REVISI: Varian Baru
-    { id: 23, name: "BC Besar", price: 25000, unit: "pcs" },              // REVISI: Varian Baru
+    { id: 2, name: "Bed Cover", price: 0, unit: "pcs", isParent: true }, 
+    // REVISI PREMIUM: Nama varian diperbarui secara utuh untuk menghindari singkatan
+    { id: 21, name: "Bed Cover Kecil", price: 15000, unit: "pcs" },              
+    { id: 22, name: "Bed Cover Sedang", price: 20000, unit: "pcs" },             
+    { id: 23, name: "Bed Cover Besar", price: 25000, unit: "pcs" },              
     { id: 3, name: "Custom 1", price: 0, unit: "pcs", isCustom: true }, 
     { id: 4, name: "Custom 2", price: 0, unit: "pcs", isCustom: true }, 
     { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" },
@@ -27,7 +28,7 @@ let state = {
     selectedServiceIds: [], 
     quantities: {}, 
     total: 0,
-    isBedCoverOpen: false // REVISI: State untuk Accordion Bed Cover
+    isBedCoverOpen: false 
 };
 let allOrders = [];
 let currentOrderId = null;
@@ -69,7 +70,12 @@ function loadCustomService() {
             const data = JSON.parse(raw);
             services.forEach(srv => {
                 if (data[srv.id]) {
-                    srv.name = data[srv.id].name;
+                    // REVISI PREMIUM: Interceptor untuk memaksa Cache Lama "BC" diubah jadi "Bed Cover"
+                    if (srv.id === 21) srv.name = "Bed Cover Kecil";
+                    else if (srv.id === 22) srv.name = "Bed Cover Sedang";
+                    else if (srv.id === 23) srv.name = "Bed Cover Besar";
+                    else srv.name = data[srv.id].name;
+                    
                     srv.price = data[srv.id].price;
                     srv.unit = data[srv.id].unit;
                 }
@@ -108,7 +114,6 @@ function openCustomServiceModal(event, id) {
     const standardInputs = document.getElementById('modal-standard-inputs');
     const bedcoverInputs = document.getElementById('modal-bedcover-inputs');
     
-    // REVISI PREMIUM: Logic pemisahan tampilan input modal (Bed Cover vs Layanan Biasa)
     if (id === 2) {
         if(standardInputs) standardInputs.classList.add('hidden');
         if(bedcoverInputs) bedcoverInputs.classList.remove('hidden');
@@ -189,7 +194,7 @@ function saveCustomServiceConfig() {
         if (raw) storedData = JSON.parse(raw);
     } catch (e) {}
 
-    // REVISI PREMIUM: Logic simpan Multi-Varian Harga Bed Cover
+    // REVISI PREMIUM: Logic simpan Multi-Varian Harga Bed Cover memastikan namanya penuh
     if (id === 2) {
         const price21 = parseInt(document.getElementById('input-bc-kecil').value) || 0;
         const price22 = parseInt(document.getElementById('input-bc-sedang').value) || 0;
@@ -199,9 +204,9 @@ function saveCustomServiceConfig() {
         const srv22 = services.find(s => s.id === 22);
         const srv23 = services.find(s => s.id === 23);
         
-        if (srv21) { srv21.price = price21; storedData[21] = { name: srv21.name, price: price21, unit: 'pcs' }; }
-        if (srv22) { srv22.price = price22; storedData[22] = { name: srv22.name, price: price22, unit: 'pcs' }; }
-        if (srv23) { srv23.price = price23; storedData[23] = { name: srv23.name, price: price23, unit: 'pcs' }; }
+        if (srv21) { srv21.price = price21; storedData[21] = { name: "Bed Cover Kecil", price: price21, unit: 'pcs' }; }
+        if (srv22) { srv22.price = price22; storedData[22] = { name: "Bed Cover Sedang", price: price22, unit: 'pcs' }; }
+        if (srv23) { srv23.price = price23; storedData[23] = { name: "Bed Cover Besar", price: price23, unit: 'pcs' }; }
         
         localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify(storedData));
         
@@ -211,7 +216,6 @@ function saveCustomServiceConfig() {
         hitungTotal(); 
         
     } else {
-        // Logic Standard untuk layanan lainnya
         const nameVal = document.getElementById('input-custom-name').value.trim();
         const priceVal = parseInt(document.getElementById('input-custom-price').value);
         const isKg = document.getElementById('unit-kg').checked;
@@ -381,7 +385,6 @@ function initApp() {
 
     services.forEach(srv => {
         const input = document.getElementById(`input-${srv.id}`);
-        // Reset qty: jika bed cover varian (21,22,23) maka 0, lainnya 1
         const initialQty = (srv.id === 21 || srv.id === 22 || srv.id === 23) ? 0 : 1;
         if(input) input.value = initialQty;
         state.quantities[srv.id] = initialQty;
@@ -405,7 +408,7 @@ function toggleBedCoverAccordion() {
 
 // REVISI PREMIUM: Fungsi Stepper Varian
 function stepSubQty(id, change) {
-    if (event) event.stopPropagation(); // Mencegah Accordion tertutup
+    if (event) event.stopPropagation(); 
     const currentVal = state.quantities[id] || 0;
     let newVal = currentVal + change;
     if (newVal < 0) newVal = 0;
@@ -422,7 +425,6 @@ function directSubQtyInput(id, value) {
     const inputField = document.getElementById(`input-${id}`);
     if (inputField) inputField.value = val;
     
-    // Auto Update Select/Deselect Varian ke Array Master
     const serviceIndex = state.selectedServiceIds.indexOf(id);
     if (val > 0 && serviceIndex === -1) {
         state.selectedServiceIds.push(id);
@@ -435,7 +437,6 @@ function directSubQtyInput(id, value) {
 }
 
 function toggleService(index) {
-    // Abaikan jika ID 2 dipanggil dari fungsi lama
     if(index === 2) return; 
 
     const serviceIndex = state.selectedServiceIds.indexOf(index);
@@ -460,7 +461,6 @@ function toggleService(index) {
 function updateServiceUI() {
     services.forEach((srv) => {
         const idx = srv.id;
-        // Skip updating varian id untuk UI, karena UI card nya adalah Parent ID 2
         if(idx === 21 || idx === 22 || idx === 23) return; 
 
         const card = document.getElementById(`srv-${idx}`);
@@ -469,7 +469,6 @@ function updateServiceUI() {
         
         let isActive = false;
         
-        // REVISI PREMIUM: Logic Active State Card Bed Cover Parent
         if (idx === 2) {
             const hasQty = (state.quantities[21] > 0 || state.quantities[22] > 0 || state.quantities[23] > 0);
             isActive = hasQty;
@@ -508,7 +507,7 @@ function hitungTotal() {
     state.total = 0;
     state.selectedServiceIds.forEach(id => {
         const service = services.find(s => s.id === id);
-        if (service && !service.isParent) { // Jangan hitung parent
+        if (service && !service.isParent) { 
             const qty = state.quantities[id] || 0;
             state.total += (qty * service.price);
         }
@@ -517,6 +516,7 @@ function hitungTotal() {
     const totalEl = document.getElementById('txtTotal');
     if(totalEl) totalEl.innerText = formatRupiah(state.total);
 }
+
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
@@ -766,6 +766,14 @@ function renderOrderList() {
     }
     container.innerHTML = allOrders.map((order, index) => {
         const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+        
+        // REVISI PREMIUM: Interceptor untuk memastikan cache db yang lama menampilkan nama utuh
+        itemsArray.forEach(item => {
+            if(item.name === "BC Kecil") item.name = "Bed Cover Kecil";
+            if(item.name === "BC Sedang") item.name = "Bed Cover Sedang";
+            if(item.name === "BC Besar") item.name = "Bed Cover Besar";
+        });
+
         let summaryService = itemsArray.length > 0 ? itemsArray[0].name : 'Layanan';
         if (itemsArray.length > 1) {
             summaryService += ` (+${itemsArray.length - 1})`;
@@ -839,15 +847,23 @@ function openOrderDetail(id) {
     if(detailTotal) detailTotal.innerText = formatRupiah(order.total);
 
     if(detailItems) {
-        detailItems.innerHTML = itemsArray.map(item => `
+        detailItems.innerHTML = itemsArray.map(item => {
+            // REVISI PREMIUM: Interceptor untuk Detail Order
+            let itemName = item.name;
+            if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
+            if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
+            if(itemName === "BC Besar") itemName = "Bed Cover Besar";
+
+            return `
             <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
                 <div class="flex flex-col">
-                    <span class="font-bold text-brand-900">${item.name}</span>
+                    <span class="font-bold text-brand-900">${itemName}</span>
                     <span class="text-xs text-gray-500">@ ${formatRupiah(item.price || 0)}</span>
                 </div>
                 <span class="font-extrabold bg-brand-50 text-brand-900 px-3 py-1.5 rounded-lg border border-brand-100">${item.qty} ${item.unit}</span>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     const ticketName = document.getElementById('ticket-name');
@@ -862,15 +878,23 @@ function openOrderDetail(id) {
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
     if(ticketItems) {
-        ticketItems.innerHTML = itemsArray.map(item => `
+        ticketItems.innerHTML = itemsArray.map(item => {
+            // REVISI PREMIUM: Interceptor untuk Ticket E-Receipt
+            let itemName = item.name;
+            if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
+            if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
+            if(itemName === "BC Besar") itemName = "Bed Cover Besar";
+
+            return `
             <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
                 <div class="flex flex-col">
-                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${item.name}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${itemName}</span>
                     <span class="text-[11px] text-cyan-500/80 font-mono mt-1">@ ${formatRupiah(item.price || 0)}</span>
                 </div>
                 <span class="font-black bg-cyan-950/40 text-cyan-300 px-3 py-1.5 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest text-xs">${item.qty} ${item.unit.toUpperCase()}</span>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     refreshPaymentUI(order.payment);
@@ -1190,12 +1214,18 @@ function openKreditDetail(customerName) {
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
         itemsArr.forEach(item => {
+            // REVISI PREMIUM: Interceptor untuk Detail Riwayat Transaksi Kredit
+            let itemName = item.name;
+            if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
+            if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
+            if(itemName === "BC Besar") itemName = "Bed Cover Besar";
+
             itemsHTML += `
             <div class="grid grid-cols-[16px_1.4fr_35px_40px_1fr_25px] gap-1.5 py-3 border-b border-gray-100 last:border-0 items-center text-gray-700 hover:bg-gray-50 transition-colors px-1 -mx-1 rounded-lg">
                 <span class="text-[11px] font-bold text-gray-400">${counter++}</span>
                 <div class="flex flex-col min-w-0 pr-1">
                     <div class="flex items-start gap-1.5 flex-wrap">
-                        <span class="text-xs font-bold text-brand-900 leading-snug break-words">${item.name}</span>
+                        <span class="text-xs font-bold text-brand-900 leading-snug break-words">${itemName}</span>
                         ${statusLunasHtml}
                     </div>
                 </div>
@@ -1332,10 +1362,16 @@ function cetakRekapKredit() {
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
+            // REVISI PREMIUM: Interceptor untuk Rekap Nota Kredit
+            let itemName = item.name;
+            if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
+            if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
+            if(itemName === "BC Besar") itemName = "Bed Cover Besar";
+
             itemsHTML += `
             <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
                 <div class="flex flex-col">
-                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${item.name} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${itemName} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
                     <span class="text-[11px] text-slate-500 font-mono mt-1">${formatTanggalSingkat(order.date)}</span>
                 </div>
                 <span class="font-mono font-black ${isLunas ? 'text-slate-600 line-through' : 'text-cyan-300'} whitespace-nowrap text-sm">${formatRupiah(item.qty * (item.price || 0))}</span>
@@ -1449,7 +1485,6 @@ function resetForm() {
     state.quantities = {};
     state.total = 0;
     
-    // REVISI PREMIUM: Tutup Accordion dan reset input Stepper Varian
     state.isBedCoverOpen = false;
     const inputAreaBedCover = document.getElementById('input-area-2');
     if(inputAreaBedCover) inputAreaBedCover.classList.add('hidden');
