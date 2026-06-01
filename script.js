@@ -3,10 +3,10 @@ const services = [
     { id: 0, name: "Cuci Komplit", price: 7000, unit: "kg" },
     { id: 1, name: "Setrika Saja", price: 4000, unit: "kg" },
     { id: 2, name: "Bed Cover", price: 25000, unit: "pcs" },
-    { id: 3, name: "Custom 1", price: 0, unit: "pcs", isCustom: true }, // BARU: Diubah jadi Custom
-    { id: 4, name: "Custom 2", price: 0, unit: "pcs", isCustom: true }, // BARU: Diubah jadi Custom
+    { id: 3, name: "Custom 1", price: 0, unit: "pcs", isCustom: true }, 
+    { id: 4, name: "Custom 2", price: 0, unit: "pcs", isCustom: true }, 
     { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" },
-    { id: 6, name: "Custom 3", price: 0, unit: "pcs", isCustom: true }  // TETAP CUSTOM
+    { id: 6, name: "Custom 3", price: 0, unit: "pcs", isCustom: true }  
 ];
 
 // --- KONFIGURASI SUPABASE ---
@@ -17,7 +17,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // --- KONSTANTA LOKAL STORAGE ---
 const LS_ORDERS_KEY = 'ziedan_local_orders';
 const LS_PENDING_KEY = 'ziedan_pending_orders';
-const LS_CUSTOM_KEY = 'ziedan_custom_services'; // BARU: Key diubah bentuk jamak (menyimpan object)
+const LS_CUSTOM_KEY = 'ziedan_custom_services'; 
 
 // --- STATE MANAGEMENT ---
 let state = {
@@ -63,21 +63,19 @@ function loadCustomService() {
         const raw = localStorage.getItem(LS_CUSTOM_KEY);
         if (raw) {
             const data = JSON.parse(raw);
-            // Loop khusus ID layanan yang memiliki isCustom: true
-            [3, 4, 6].forEach(id => {
-                if (data[id]) {
-                    const customSrv = services.find(s => s.id === id);
-                    if (customSrv) {
-                        customSrv.name = data[id].name;
-                        customSrv.price = data[id].price;
-                        customSrv.unit = data[id].unit;
-                    }
+            // MODIFIKASI: Sekarang melooping SEMUA layanan, bukan hanya ID 3, 4, 6
+            // agar perubahan harga layanan default juga bersifat permanen
+            services.forEach(srv => {
+                if (data[srv.id]) {
+                    srv.name = data[srv.id].name;
+                    srv.price = data[srv.id].price;
+                    srv.unit = data[srv.id].unit;
                 }
             });
         }
         
-        // Update UI untuk semua Custom Services
-        [3, 4, 6].forEach(id => updateCustomServiceUI(id));
+        // MODIFIKASI: Update UI untuk semua Services yang ada (ID 0 - 6)
+        services.forEach(srv => updateCustomServiceUI(srv.id));
     } catch (e) {
         console.warn("Gagal meload custom service:", e);
     }
@@ -99,15 +97,13 @@ function updateCustomServiceUI(id) {
 }
 
 function openCustomServiceModal(event, id) {
-    if (event) event.stopPropagation(); // Mencegah card tertoggle saat klik tombol gear
+    if (event) event.stopPropagation(); 
     
     const customSrv = services.find(s => s.id === id);
     if (!customSrv) return;
 
-    // Simpan ID yang sedang diedit ke input hidden
     document.getElementById('current-custom-id').value = id;
     
-    // Cek apakah nama masih default bawaan sistem
     const isDefaultName = (customSrv.name.startsWith('Custom '));
     
     document.getElementById('input-custom-name').value = !isDefaultName ? customSrv.name : '';
@@ -185,14 +181,12 @@ function saveCustomServiceConfig() {
         customSrv.price = priceVal;
         customSrv.unit = isKg ? 'kg' : 'pcs';
 
-        // Ambil data yang sudah ada di localStorage, atau buat object baru
         let storedData = {};
         try {
             const raw = localStorage.getItem(LS_CUSTOM_KEY);
             if (raw) storedData = JSON.parse(raw);
         } catch (e) {}
 
-        // Update data khusus untuk ID ini
         storedData[id] = {
             name: customSrv.name,
             price: customSrv.price,
@@ -202,11 +196,12 @@ function saveCustomServiceConfig() {
         localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify(storedData));
         
         updateCustomServiceUI(id);
-        hitungTotal(); // Update total jika layanan ini sedang aktif dipilih
+        hitungTotal(); 
     }
 
     closeCustomServiceModal();
 }
+
 // --- HELPER BACA & TULIS LOKAL STORAGE ---
 function getLocalOrders() {
     try {
@@ -338,7 +333,7 @@ function navTo(page) {
 
 // --- FUNGSI UTAMA ---
 function initApp() {
-    loadCustomService(); // BARU: Memuat seluruh konfigurasi multi-custom dari local storage
+    loadCustomService(); 
 
     services.forEach(srv => {
         const input = document.getElementById(`input-${srv.id}`);
@@ -371,7 +366,9 @@ function toggleService(index) {
 }
 
 function updateServiceUI() {
-    services.forEach((srv, idx) => {
+    // MODIFIKASI: Menggunakan srv.id agar mapping selalu tepat pada elemennya
+    services.forEach((srv) => {
+        const idx = srv.id;
         const card = document.getElementById(`srv-${idx}`);
         const checkIcon = card?.querySelector('.check-icon');
         if (!card) return;
@@ -386,12 +383,10 @@ function updateServiceUI() {
         } else {
             card.classList.remove('border-brand-500', 'bg-brand-100', 'shadow-md', 'ring-1', 'ring-brand-500');
             
-            if ([3, 4, 6].includes(idx)) { // BARU: Menyesuaikan style border dashed untuk seluruh card custom
-                card.classList.add('border-dashed', 'border-brand-300');
-                card.classList.remove('border-white');
-            } else { 
-                card.classList.add('border-white', 'shadow-sm');
-            }
+            // MODIFIKASI: Karena sekarang SELURUH layanan bersifat fleksibel (bisa diedit), 
+            // maka secara default Card akan memiliki border dashed sebagai indikator
+            card.classList.add('border-dashed', 'border-brand-300');
+            card.classList.remove('border-white');
             
             if(checkIcon) {
                 checkIcon.classList.add('opacity-0', 'scale-50');
@@ -421,11 +416,10 @@ function hitungTotal() {
     const totalEl = document.getElementById('txtTotal');
     if(totalEl) totalEl.innerText = formatRupiah(state.total);
 }
-
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
-    const alamat = document.getElementById('custAddress').value.trim(); // DIUBAH: Membaca alamat rumah
+    const alamat = document.getElementById('custAddress').value.trim(); 
     
     if (!nama) {
         shakeElement('custName');
@@ -437,12 +431,10 @@ async function prosesPesanan() {
         return;
     }
     
-    // BARU: Validasi cerdas untuk mengecek semua layanan bertipe Custom yang dipilih
     let hasInvalidCustom = false;
     state.selectedServiceIds.forEach(id => {
         const srv = services.find(s => s.id === id);
         if (srv && srv.isCustom) {
-            // Jika harga masih 0 atau namanya masih nama default (Custom 1, 2, 3), cegah proses simpan
             if (srv.price <= 0 || srv.name === 'Custom ' + (id === 3 ? '1' : id === 4 ? '2' : '3')) {
                 alert(`Harap atur Nama dan Harga Layanan ${srv.name} terlebih dahulu (Klik icon Gerigi)!`);
                 shakeElement(`srv-${id}`);
@@ -464,7 +456,7 @@ async function prosesPesanan() {
 
     const newOrder = {
         customer: nama,
-        whatsapp: alamat || null, // INTEGRITAS: Nilai alamat dipetakan ke field whatsapp agar database tidak perlu diubah
+        whatsapp: alamat || null, 
         date: new Date().toISOString(),
         payment: 'cash',
         status: 'baru', 
@@ -562,6 +554,7 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
+
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -734,13 +727,13 @@ function openOrderDetail(id) {
     const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
 
     const detailName = document.getElementById('detail-name');
-    const detailAddress = document.getElementById('detail-address'); // DIUBAH: Menggunakan id detail-address
+    const detailAddress = document.getElementById('detail-address'); 
     const detailDate = document.getElementById('detail-date');
     const detailTotal = document.getElementById('detail-total');
     const detailItems = document.getElementById('detail-items');
 
     if(detailName) detailName.innerText = order.customer;
-    if(detailAddress) detailAddress.innerText = order.whatsapp ? order.whatsapp : '-'; // Memasukkan data alamat rumah
+    if(detailAddress) detailAddress.innerText = order.whatsapp ? order.whatsapp : '-'; 
     if(detailDate) detailDate.innerText = formatTanggalLokal(order.date);
     if(detailTotal) detailTotal.innerText = formatRupiah(order.total);
 
@@ -757,13 +750,13 @@ function openOrderDetail(id) {
     }
 
     const ticketName = document.getElementById('ticket-name');
-    const ticketAddress = document.getElementById('ticket-address'); // DIUBAH: Menggunakan id ticket-address
+    const ticketAddress = document.getElementById('ticket-address'); 
     const ticketDate = document.getElementById('ticket-date');
     const ticketTotal = document.getElementById('ticket-total');
     const ticketItems = document.getElementById('ticket-items');
 
     if(ticketName) ticketName.innerText = order.customer;
-    if(ticketAddress) ticketAddress.innerText = order.whatsapp ? order.whatsapp : '-'; // Memasukkan data alamat rumah
+    if(ticketAddress) ticketAddress.innerText = order.whatsapp ? order.whatsapp : '-'; 
     if(ticketDate) ticketDate.innerText = formatTanggalLokal(order.date);
     if(ticketTotal) ticketTotal.innerText = formatRupiah(order.total);
 
@@ -1356,7 +1349,7 @@ function downloadKreditTicket() {
 // --- UTILITIES LAINNYA ---
 function resetForm() {
     document.getElementById('custName').value = "";
-    document.getElementById('custAddress').value = ""; // DIUBAH: Mengosongkan form input alamat rumah
+    document.getElementById('custAddress').value = ""; 
     state.selectedServiceIds = [];
     state.quantities = {};
     state.total = 0;
