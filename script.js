@@ -470,8 +470,18 @@ function updateServiceUI() {
         let isActive = false;
         
         if (idx === 2) {
-            const hasQty = (state.quantities[21] > 0 || state.quantities[22] > 0 || state.quantities[23] > 0);
-            isActive = hasQty;
+            // REVISI PREMIUM: Dynamic Feedback untuk Teks Bed Cover Terpilih
+            const totalBedCover = (state.quantities[21] || 0) + (state.quantities[22] || 0) + (state.quantities[23] || 0);
+            isActive = totalBedCover > 0;
+            
+            const summaryLabel = document.getElementById('label-srv-2-summary');
+            if (summaryLabel) {
+                if (isActive) {
+                    summaryLabel.innerHTML = `<span class="text-brand-500 font-extrabold text-[11px]">${totalBedCover} pcs Terpilih</span>`;
+                } else {
+                    summaryLabel.innerText = "Pilih Varian";
+                }
+            }
         } else {
             isActive = state.selectedServiceIds.includes(idx);
         }
@@ -655,7 +665,6 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
-
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
