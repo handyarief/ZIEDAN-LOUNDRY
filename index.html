@@ -50,23 +50,25 @@
         <img src="logo.jpg" alt="Watermark" class="w-[150%] md:w-[80%] h-auto max-w-none transform -rotate-12 scale-125 grayscale">
     </div>
 
-    <header class="bg-white/90 backdrop-blur-xl shadow-sm border-b border-brand-100 fixed top-0 w-full z-50 transition-all duration-300 print:hidden" id="main-header">
-        <div class="flex items-center justify-between px-6 py-4">
-            <div class="flex items-center gap-4">
-                <img src="logo.jpg" alt="Ziedan Laundry Logo" class="w-[60px] h-[60px] rounded-full object-cover border-2 border-white ring-2 ring-brand-100 ring-offset-2 shadow-[0_8px_15px_-3px_rgba(14,165,233,0.2)]">
+    <!-- UPDATE HEADER (Floating Glassmorphism Island) -->
+    <header class="fixed top-4 left-4 right-4 z-50 transition-all duration-300 print:hidden" id="main-header">
+        <div class="bg-white/85 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-white/80 rounded-[2rem] px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="logo.jpg" alt="Ziedan Laundry Logo" class="w-[48px] h-[48px] rounded-full object-cover border-2 border-white ring-1 ring-brand-100 shadow-sm">
                 <div class="flex flex-col justify-center">
-                    <h1 class="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-700 via-brand-500 to-cyan-400 leading-none text-xl md:text-2xl tracking-tight drop-shadow-sm uppercase">ZIEDAN LAUNDRY</h1>
+                    <h1 class="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-brand-700 via-brand-500 to-cyan-400 leading-none text-lg md:text-xl tracking-tight drop-shadow-sm uppercase">ZIEDAN LAUNDRY</h1>
                     <span class="text-[8px] font-black text-white bg-gradient-to-r from-brand-500 to-cyan-400 px-2 py-0.5 rounded-full tracking-widest uppercase shadow-sm mt-1 w-max border border-brand-200">PREMIUM CARE</span>
                 </div>
             </div>
             
-            <button id="menu-btn" onclick="toggleMenu()" class="w-10 h-10 flex flex-col justify-center items-center gap-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 active:scale-90 transition-all z-[60] border border-brand-100 shadow-sm relative overflow-hidden">
+            <button id="menu-btn" onclick="toggleMenu()" class="w-10 h-10 shrink-0 flex flex-col justify-center items-center gap-1.5 rounded-full bg-brand-50 hover:bg-brand-100 text-brand-700 active:scale-90 transition-all z-[60] border border-brand-100 shadow-sm relative overflow-hidden">
                 <span class="hamburger-line w-5 h-[2.5px] bg-current rounded-full transition-all duration-300"></span>
                 <span class="hamburger-line w-3.5 h-[2.5px] bg-current rounded-full transition-all duration-300 ml-auto mr-2.5"></span>
                 <span class="hamburger-line w-5 h-[2.5px] bg-current rounded-full transition-all duration-300"></span>
             </button>
         </div>
     </header>
+    <!-- AKHIR UPDATE HEADER -->
     
     <div id="menu-overlay" class="fixed inset-0 bg-brand-900/40 backdrop-blur-md z-[55] hidden flex-col justify-end items-center print:hidden pb-8 px-4 transition-opacity duration-300">
         <div class="bg-white/95 backdrop-blur-xl w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border border-white transform translate-y-10 opacity-0 transition-all duration-500 menu-card flex flex-col gap-4">
@@ -374,7 +376,6 @@
             <div id="order-list" class="space-y-3">
             </div>
         </div>
-        
         <div id="view-kredit" class="hidden transition-all duration-300 animate-fade-in-up print:hidden relative z-10">
             <div class="flex items-center gap-4 mb-6">
                 <button onclick="backToHome()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-brand-100 text-brand-900 active:scale-90 transition-all">
