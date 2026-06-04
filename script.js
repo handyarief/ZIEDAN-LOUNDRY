@@ -356,7 +356,6 @@ async function fetchOrders() {
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     }
 }
-
 // --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -863,13 +862,18 @@ function openOrderDetail(id) {
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
             if(itemName === "BC Besar") itemName = "Bed Cover Besar";
 
+            const subtotal = item.qty * (item.price || 0);
+
             return `
-            <div class="flex justify-between items-center text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
-                <div class="flex flex-col">
+            <div class="flex flex-col text-sm text-gray-700 border-b border-gray-100 last:border-0 py-3">
+                <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-brand-900">${itemName}</span>
-                    <span class="text-xs text-gray-500">@ ${formatRupiah(item.price || 0)}</span>
+                    <span class="font-extrabold text-brand-900">${formatRupiah(subtotal)}</span>
                 </div>
-                <span class="font-extrabold bg-brand-50 text-brand-900 px-3 py-1.5 rounded-lg border border-brand-100">${item.qty} ${item.unit}</span>
+                <div class="flex justify-between items-center text-xs text-gray-500">
+                    <span>${item.qty} ${item.unit} x ${formatRupiah(item.price || 0)}</span>
+                    <span class="font-extrabold bg-brand-50 text-brand-900 px-2 py-1 rounded-lg border border-brand-100">${item.qty} ${item.unit}</span>
+                </div>
             </div>
             `;
         }).join('');
@@ -894,13 +898,18 @@ function openOrderDetail(id) {
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
             if(itemName === "BC Besar") itemName = "Bed Cover Besar";
 
+            const subtotal = item.qty * (item.price || 0);
+
             return `
-            <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
-                <div class="flex flex-col">
+            <div class="flex flex-col text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
+                <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-cyan-50 tracking-wide text-sm">${itemName}</span>
-                    <span class="text-[11px] text-cyan-500/80 font-mono mt-1">@ ${formatRupiah(item.price || 0)}</span>
+                    <span class="font-bold text-cyan-300 text-sm">${formatRupiah(subtotal)}</span>
                 </div>
-                <span class="font-black bg-cyan-950/40 text-cyan-300 px-3 py-1.5 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest text-xs">${item.qty} ${item.unit.toUpperCase()}</span>
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-[11px] text-cyan-500/80 font-mono">${item.qty} ${item.unit.toUpperCase()} x ${formatRupiah(item.price || 0)}</span>
+                    <span class="font-black bg-cyan-950/40 text-cyan-300 px-3 py-1 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest text-[10px]">${item.qty} ${item.unit.toUpperCase()}</span>
+                </div>
             </div>
             `;
         }).join('');
@@ -1191,7 +1200,6 @@ function renderKreditList() {
         `;
     }).join('');
 }
-
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
     currentDetailKreditName = targetName;
