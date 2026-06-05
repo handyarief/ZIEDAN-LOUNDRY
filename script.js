@@ -250,6 +250,7 @@ function saveCustomServiceConfig() {
 
     closeCustomServiceModal();
 }
+
 // --- HELPER BACA & TULIS LOKAL STORAGE ---
 function getLocalOrders() {
     try {
@@ -356,6 +357,7 @@ async function fetchOrders() {
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
     }
 }
+
 // --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -511,7 +513,6 @@ function updateQty(id, value) {
     state.quantities[id] = val;
     hitungTotal();
 }
-
 function hitungTotal() {
     state.total = 0;
     state.selectedServiceIds.forEach(id => {
@@ -664,6 +665,7 @@ function switchToKredit() {
     
     renderKreditList(); 
 }
+
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -835,6 +837,7 @@ function renderOrderList() {
         `;
     }).join('');
 }
+
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id == id);
@@ -856,7 +859,6 @@ function openOrderDetail(id) {
 
     if(detailItems) {
         detailItems.innerHTML = itemsArray.map(item => {
-            // REVISI PREMIUM: Interceptor untuk Detail Order
             let itemName = item.name;
             if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
@@ -892,7 +894,6 @@ function openOrderDetail(id) {
 
     if(ticketItems) {
         ticketItems.innerHTML = itemsArray.map(item => {
-            // REVISI PREMIUM: Interceptor untuk Ticket E-Receipt
             let itemName = item.name;
             if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
@@ -901,14 +902,14 @@ function openOrderDetail(id) {
             const subtotal = item.qty * (item.price || 0);
 
             return `
-            <div class="flex flex-col text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${itemName}</span>
-                    <span class="font-bold text-cyan-300 text-sm">${formatRupiah(subtotal)}</span>
+            <div class="flex flex-col text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3.5">
+                <div class="flex justify-between items-start mb-1.5">
+                    <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName}</span>
+                    <span class="font-bold text-cyan-300 text-base">${formatRupiah(subtotal)}</span>
                 </div>
                 <div class="flex justify-between items-center mt-1">
-                    <span class="text-[11px] text-cyan-500/80 font-mono">${item.qty} ${item.unit.toUpperCase()} x ${formatRupiah(item.price || 0)}</span>
-                    <span class="font-black bg-cyan-950/40 text-cyan-300 px-3 py-1 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest text-[10px]">${item.qty} ${item.unit.toUpperCase()}</span>
+                    <span class="text-xs text-cyan-500/80 font-mono">${item.qty} ${item.unit.toUpperCase()} x ${formatRupiah(item.price || 0)}</span>
+                    <span class="font-black bg-cyan-950/40 text-cyan-300 px-3.5 py-1.5 rounded-lg border border-cyan-800/50 shadow-[0_0_10px_rgba(6,182,212,0.1)] font-mono tracking-widest text-xs">${item.qty} ${item.unit.toUpperCase()}</span>
                 </div>
             </div>
             `;
@@ -967,13 +968,15 @@ function refreshPaymentUI(paymentStatus) {
     if (paymentStatus === 'cash') {
         const classLunas = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "CASH"; badgeDetail.className = classLunas; }
-        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[10px] bg-emerald-950/50 text-emerald-400 px-3 py-1.5 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
+        // REVISI PREMIUM: Badge Nota diperbesar text-xs, min-w-[85px]
+        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-xs bg-emerald-950/50 text-emerald-400 px-4 py-2 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassActive + disabledStateClass + "border-green-500 bg-green-500 text-white";
         btnKredit.className = baseBtnClassInactive + disabledStateClass;
     } else {
         const classKredit = "text-[10px] bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "KREDIT"; badgeDetail.className = classKredit; }
-        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[10px] bg-rose-950/50 text-rose-400 px-3 py-1.5 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
+        // REVISI PREMIUM: Badge Nota diperbesar text-xs, min-w-[85px]
+        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-xs bg-rose-950/50 text-rose-400 px-4 py-2 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassInactive + disabledStateClass;
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
     }
@@ -1014,25 +1017,24 @@ function refreshStatusUI(status) {
         btnSelesai.className = classInactive;
         if(ticketBadge) {
             ticketBadge.innerText = "PROSES";
-            ticketBadge.className = "text-[10px] bg-blue-950/50 text-blue-400 px-3 py-1.5 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-xs bg-blue-950/50 text-blue-400 px-4 py-2 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
         }
     } else if (status === 'selesai') {
         btnProses.className = classInactive;
         btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         if(ticketBadge) {
             ticketBadge.innerText = "SELESAI";
-            ticketBadge.className = "text-[10px] bg-cyan-950/50 text-cyan-400 px-3 py-1.5 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-xs bg-cyan-950/50 text-cyan-400 px-4 py-2 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
         }
     } else {
         btnProses.className = classInactive;
         btnSelesai.className = classInactive;
         if(ticketBadge) {
             ticketBadge.innerText = "BARU";
-            ticketBadge.className = "text-[10px] bg-slate-800/80 text-slate-300 px-3 py-1.5 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-xs bg-slate-800/80 text-slate-300 px-4 py-2 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
         }
     }
 }
-
 function openTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
@@ -1062,23 +1064,25 @@ function downloadETicket() {
     const btnDownload = document.getElementById('btn-download');
     const originalContent = btnDownload.innerHTML;
     
-    btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses Nota Bayar...</span>';
+    btnDownload.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Memproses Nota...</span>';
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
+    // REVISI PREMIUM: Memastikan kontainer bayangan tidak mewarisi height layar
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '420px'; 
+    offScreenContainer.style.height = 'max-content'; 
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalTicketElement.cloneNode(true);
-    clone.style.height = 'auto';
+    clone.style.height = 'max-content';
     clone.style.maxHeight = 'none';
     clone.style.overflow = 'visible';
     clone.classList.remove('overflow-y-auto');
-    clone.style.padding = '24px'; 
+    clone.style.padding = '32px 24px'; 
 
     const blurElements = clone.querySelectorAll('.blur-xl');
     blurElements.forEach(el => {
@@ -1096,13 +1100,19 @@ function downloadETicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    document.fonts.ready.then(() => {
+    // REVISI PREMIUM: Memberi jeda render & mengunci 'height' agar tidak ada ruang hitam (blank space)
+    setTimeout(() => {
+        const targetHeight = clone.offsetHeight;
+
         html2canvas(clone, { 
-            scale: 4, 
+            scale: 3, 
             backgroundColor: "#0b1120", 
             useCORS: true,
             allowTaint: true,
-            windowWidth: 420 
+            width: 420,
+            height: targetHeight,
+            windowWidth: 420,
+            windowHeight: targetHeight 
         })
         .then(canvas => {
             document.body.removeChild(offScreenContainer);
@@ -1128,7 +1138,7 @@ function downloadETicket() {
             console.error("Gagal memproses Nota Bayar: ", error);
             alert("Terjadi kesalahan saat memproses Nota Bayar.");
         });
-    });
+    }, 150);
 }
 
 function closeOrderDetail() {
@@ -1200,6 +1210,7 @@ function renderKreditList() {
         `;
     }).join('');
 }
+
 function openKreditDetail(customerName) {
     const targetName = customerName.trim().toUpperCase();
     currentDetailKreditName = targetName;
@@ -1231,7 +1242,6 @@ function openKreditDetail(customerName) {
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
         itemsArr.forEach(item => {
-            // REVISI PREMIUM: Interceptor untuk Detail Riwayat Transaksi Kredit
             let itemName = item.name;
             if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
@@ -1375,23 +1385,23 @@ function cetakRekapKredit() {
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
-        const tagLunas = isLunas ? ` <span class="text-[9px] bg-emerald-950/50 text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
+        const tagLunas = isLunas ? ` <span class="text-[10px] bg-emerald-950/50 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
-            // REVISI PREMIUM: Interceptor untuk Rekap Nota Kredit
             let itemName = item.name;
             if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
             if(itemName === "BC Besar") itemName = "Bed Cover Besar";
 
+            // REVISI PREMIUM: Memperbesar font pada item nota kredit
             itemsHTML += `
-            <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
+            <div class="flex justify-between items-center text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3.5">
                 <div class="flex flex-col">
-                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${itemName} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
-                    <span class="text-[11px] text-slate-500 font-mono mt-1">${formatTanggalSingkat(order.date)}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
+                    <span class="text-xs text-slate-500 font-mono mt-1">${formatTanggalSingkat(order.date)}</span>
                 </div>
-                <span class="font-mono font-black ${isLunas ? 'text-slate-600 line-through' : 'text-cyan-300'} whitespace-nowrap text-sm">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="font-mono font-black ${isLunas ? 'text-slate-600 line-through' : 'text-cyan-300'} whitespace-nowrap text-base">${formatRupiah(item.qty * (item.price || 0))}</span>
             </div>
             `;
         });
@@ -1434,19 +1444,21 @@ function downloadKreditTicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
+    // REVISI PREMIUM: Memastikan kontainer bayangan tidak mewarisi height layar
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
     offScreenContainer.style.top = '0';
     offScreenContainer.style.width = '420px'; 
+    offScreenContainer.style.height = 'max-content';
     offScreenContainer.style.backgroundColor = '#0b1120'; 
     
     const clone = originalElement.cloneNode(true);
-    clone.style.height = 'auto';
+    clone.style.height = 'max-content';
     clone.style.maxHeight = 'none';
     clone.style.overflow = 'visible';
     clone.classList.remove('overflow-y-auto');
-    clone.style.padding = '24px'; 
+    clone.style.padding = '32px 24px'; 
 
     const blurElements = clone.querySelectorAll('.blur-xl');
     blurElements.forEach(el => {
@@ -1464,13 +1476,19 @@ function downloadKreditTicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    document.fonts.ready.then(() => {
+    // REVISI PREMIUM: Mengunci height ke dalam konfigurasi canvas
+    setTimeout(() => {
+        const targetHeight = clone.offsetHeight;
+
         html2canvas(clone, { 
-            scale: 4, 
+            scale: 3, 
             backgroundColor: "#0b1120", 
             useCORS: true, 
             allowTaint: true, 
-            windowWidth: 420 
+            width: 420,
+            height: targetHeight,
+            windowWidth: 420,
+            windowHeight: targetHeight
         })
         .then(canvas => {
             document.body.removeChild(offScreenContainer);
@@ -1492,7 +1510,7 @@ function downloadKreditTicket() {
             btnDownload.classList.remove('opacity-70');
             alert("Terjadi kesalahan saat memproses Nota Tagihan.");
         });
-    });
+    }, 150);
 }
 
 function resetForm() {
