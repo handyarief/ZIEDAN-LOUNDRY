@@ -297,6 +297,10 @@ async function syncPendingOrders() {
                 ...order,
                 items: typeof order.items === 'string' ? order.items : JSON.stringify(order.items)
             };
+            
+            // REVISI BUG 3: Hapus property id yang berupa string offline sebelum insert ke supabase
+            // Agar database otomatis men-generate Primary Key sendiri yang valid.
+            delete orderToUpload.id; 
             delete orderToUpload._localId;
             delete orderToUpload._isPending;
 
@@ -340,8 +344,16 @@ async function fetchOrders() {
             return;
         }
 
-        allOrders = data || [];
-        saveLocalOrders(allOrders);
+        // REVISI BUG 2: Jangan langsung menimpa array lokal dengan [] jika server kosong
+        // Hal ini untuk menghindari hilangnya data saat RLS error / limit Supabase tercapai
+        const localData = getLocalOrders();
+        if ((!data || data.length === 0) && localData.length > 0) {
+            console.warn("Data server kosong tapi terdapat data lokal. Mencegah overwrite data.");
+            allOrders = localData; // Pertahankan data lokal
+        } else {
+            allOrders = data || [];
+            saveLocalOrders(allOrders); // Sinkronisasi normal
+        }
         
         if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
@@ -357,7 +369,6 @@ async function fetchOrders() {
         if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
     }
 }
-
 // --- FUNGSI NAVIGASI HEADER ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -548,6 +559,7 @@ function initApp() {
     fetchOrders(); 
     setTimeout(() => syncPendingOrders(), 2000);
 }
+
 // REVISI PREMIUM: Fungsi Logika untuk Card Bed Cover Accordion
 function toggleBedCoverAccordion() {
     state.isBedCoverOpen = !state.isBedCoverOpen;
@@ -890,7 +902,6 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
-
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -966,6 +977,7 @@ function renderOrderList() {
         `;
     }).join('');
 }
+
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id == id);
@@ -1671,3 +1683,7 @@ function shakeElement(id) {
         setTimeout(() => { el.classList.remove('ring-2', 'ring-red-500', 'animate-pulse'); }, 500);
     }
 }
+
+// REVISI BUG 1: Inisialisasi Aplikasi Saat Halaman Selesai Dimuat
+window.addEventListener('DOMContentLoaded', initApp);
+
