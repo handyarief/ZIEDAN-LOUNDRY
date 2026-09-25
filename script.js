@@ -3,7 +3,6 @@ const services = [
     { id: 0, name: "Cuci Komplit", price: 7000, unit: "kg" },
     { id: 1, name: "Setrika Saja", price: 4000, unit: "kg" },
     { id: 2, name: "Bed Cover", price: 0, unit: "pcs", isParent: true }, 
-    // REVISI PREMIUM: Nama varian diperbarui secara utuh untuk menghindari singkatan
     { id: 21, name: "Bed Cover Kecil", price: 15000, unit: "pcs" },              
     { id: 22, name: "Bed Cover Sedang", price: 20000, unit: "pcs" },             
     { id: 23, name: "Bed Cover Besar", price: 25000, unit: "pcs" },              
@@ -70,7 +69,6 @@ function loadCustomService() {
             const data = JSON.parse(raw);
             services.forEach(srv => {
                 if (data[srv.id]) {
-                    // REVISI PREMIUM: Interceptor untuk memaksa Cache Lama "BC" diubah jadi "Bed Cover"
                     if (srv.id === 21) srv.name = "Bed Cover Kecil";
                     else if (srv.id === 22) srv.name = "Bed Cover Sedang";
                     else if (srv.id === 23) srv.name = "Bed Cover Besar";
@@ -194,7 +192,6 @@ function saveCustomServiceConfig() {
         if (raw) storedData = JSON.parse(raw);
     } catch (e) {}
 
-    // REVISI PREMIUM: Logic simpan Multi-Varian Harga Bed Cover memastikan namanya penuh
     if (id === 2) {
         const price21 = parseInt(document.getElementById('input-bc-kecil').value) || 0;
         const price22 = parseInt(document.getElementById('input-bc-sedang').value) || 0;
@@ -339,6 +336,7 @@ async function fetchOrders() {
             
             if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
             if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
+            if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
             return;
         }
 
@@ -347,6 +345,7 @@ async function fetchOrders() {
         
         if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
+        if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
     } catch (err) {
         console.error("Network error saat mengambil data:", err);
         const localOrders = getLocalOrders();
@@ -355,6 +354,7 @@ async function fetchOrders() {
         
         if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
         if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
+        if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
     }
 }
 
@@ -377,7 +377,161 @@ function navTo(page) {
     if (page === 'home') { backToHome(); } 
     else if (page === 'orders') { switchToOrders(); renderOrderList(); } 
     else if (page === 'kredit') { switchToKredit(); }
+    else if (page === 'laporan') { switchToLaporan(); }
     toggleMenu(); 
+}
+
+function switchToOrders() {
+    document.getElementById('view-home').classList.add('hidden');
+    document.getElementById('view-orders').classList.remove('hidden');
+    document.getElementById('view-order-detail').classList.add('hidden'); 
+    document.getElementById('view-kredit')?.classList.add('hidden'); 
+    document.getElementById('view-kredit-detail')?.classList.add('hidden');
+    document.getElementById('view-laporan')?.classList.add('hidden');
+    const footer = document.getElementById('footer-total');
+    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
+    
+    renderOrderList(); 
+}
+
+function backToHome() {
+    document.getElementById('view-orders').classList.add('hidden');
+    document.getElementById('view-order-detail').classList.add('hidden');
+    document.getElementById('view-kredit')?.classList.add('hidden'); 
+    document.getElementById('view-kredit-detail')?.classList.add('hidden');
+    document.getElementById('view-laporan')?.classList.add('hidden');
+    document.getElementById('view-home').classList.remove('hidden');
+    const footer = document.getElementById('footer-total');
+    if(footer) footer.classList.remove('translate-y-full', 'opacity-0');
+}
+
+function switchToKredit() {
+    document.getElementById('view-home').classList.add('hidden');
+    document.getElementById('view-orders').classList.add('hidden');
+    document.getElementById('view-order-detail').classList.add('hidden');
+    document.getElementById('view-kredit-detail')?.classList.add('hidden');
+    document.getElementById('view-laporan')?.classList.add('hidden');
+    document.getElementById('view-kredit').classList.remove('hidden');
+    const footer = document.getElementById('footer-total');
+    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
+    
+    renderKreditList(); 
+}
+
+// FITUR BARU: NAVIGASI KE LAPORAN BULANAN
+function switchToLaporan() {
+    document.getElementById('view-home').classList.add('hidden');
+    document.getElementById('view-orders').classList.add('hidden');
+    document.getElementById('view-order-detail').classList.add('hidden');
+    document.getElementById('view-kredit')?.classList.add('hidden');
+    document.getElementById('view-kredit-detail')?.classList.add('hidden');
+    document.getElementById('view-laporan').classList.remove('hidden');
+    const footer = document.getElementById('footer-total');
+    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
+
+    // Setup bulan default (bulan saat ini) jika kosong
+    const inputBulan = document.getElementById('input-bulan-laporan');
+    if (!inputBulan.value) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        inputBulan.value = `${year}-${month}`;
+    }
+    
+    renderLaporan();
+}
+
+// FITUR BARU: RENDER DATA LAPORAN BULANAN
+function renderLaporan() {
+    const container = document.getElementById('laporan-list');
+    const qtyEl = document.getElementById('laporan-summary-qty');
+    const omsetEl = document.getElementById('laporan-summary-omset');
+    const inputBulan = document.getElementById('input-bulan-laporan').value;
+
+    if (!inputBulan) {
+        container.innerHTML = '<p class="text-center text-xs text-gray-400 py-4">Silakan pilih bulan.</p>';
+        qtyEl.innerText = "0";
+        omsetEl.innerText = "Rp 0";
+        return;
+    }
+
+    const [targetYear, targetMonth] = inputBulan.split('-');
+
+    // Filter transaksi berdasarkan bulan
+    const filteredOrders = allOrders.filter(order => {
+        const d = new Date(order.date);
+        return d.getFullYear() == targetYear && String(d.getMonth() + 1).padStart(2, '0') == targetMonth;
+    });
+
+    // Urutkan berdasarkan tanggal terlama ke terbaru (kronologis laporan)
+    filteredOrders.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    let totalPesanan = 0;
+    let totalOmset = 0;
+
+    if (filteredOrders.length === 0) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-10 opacity-50">
+                <i class="fas fa-box-open text-3xl mb-3 text-indigo-300 drop-shadow-sm"></i>
+                <p class="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Tidak ada data di bulan ini</p>
+            </div>
+        `;
+        qtyEl.innerText = "0";
+        omsetEl.innerText = "Rp 0";
+        return;
+    }
+
+    const itemsHtml = filteredOrders.map((order, index) => {
+        totalOmset += order.total;
+        totalPesanan += 1;
+        
+        const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+        let serviceNames = itemsArray.map(i => {
+            let name = i.name;
+            if(name === "BC Kecil") name = "Bed Cover Kecil";
+            if(name === "BC Sedang") name = "Bed Cover Sedang";
+            if(name === "BC Besar") name = "Bed Cover Besar";
+            return name;
+        }).join(', ');
+
+        if(!serviceNames) serviceNames = "-";
+
+        const tgl = new Date(order.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        
+        let paymentBadgeColor = order.payment === 'cash' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-[0_2px_4px_rgba(16,185,129,0.1)]' : 'bg-rose-50 text-rose-600 border-rose-200 shadow-[0_2px_4px_rgba(244,63,94,0.1)]';
+
+        return `
+        <div class="bg-gradient-to-br from-indigo-50/40 to-blue-50/40 rounded-2xl p-3 border border-indigo-100/50 hover:bg-white transition-all mb-2.5 shadow-sm hover:shadow-[0_4px_15px_rgba(99,102,241,0.1)] group">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                    <span class="w-6 h-6 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black shadow-inner border border-indigo-100 group-hover:scale-105 transition-transform">${index + 1}</span>
+                    <span class="text-sm font-black text-indigo-900 truncate uppercase tracking-wide leading-none">${order.customer}</span>
+                </div>
+                <span class="text-[9px] text-indigo-500 font-bold bg-white/80 px-2 py-1 rounded-md shadow-sm border border-indigo-50 flex-shrink-0 tracking-wider">${tgl}</span>
+            </div>
+            
+            <div class="flex flex-col gap-1.5 pl-8">
+                <span class="text-[10px] text-gray-500 font-bold break-words leading-tight flex items-start gap-1.5">
+                    <i class="fas fa-map-marker-alt text-indigo-300/70 mt-0.5"></i>
+                    <span class="flex-1">${order.whatsapp || '-'}</span>
+                </span>
+                <span class="text-[10px] text-gray-500 font-bold leading-tight truncate flex items-center gap-1.5">
+                    <i class="fas fa-tag text-indigo-300/70"></i>
+                    ${serviceNames}
+                </span>
+                
+                <div class="flex justify-between items-end mt-2 pt-2 border-t border-indigo-100/50">
+                    <span class="text-[10px] font-black px-2 py-1 rounded-md border ${paymentBadgeColor} uppercase tracking-widest">${order.payment}</span>
+                    <span class="text-sm font-black text-indigo-600 drop-shadow-sm">${formatRupiah(order.total)}</span>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    container.innerHTML = itemsHtml;
+    qtyEl.innerText = totalPesanan;
+    omsetEl.innerText = formatRupiah(totalOmset);
 }
 
 // --- FUNGSI UTAMA & INISIALISASI ---
@@ -394,7 +548,6 @@ function initApp() {
     fetchOrders(); 
     setTimeout(() => syncPendingOrders(), 2000);
 }
-
 // REVISI PREMIUM: Fungsi Logika untuk Card Bed Cover Accordion
 function toggleBedCoverAccordion() {
     state.isBedCoverOpen = !state.isBedCoverOpen;
@@ -632,40 +785,6 @@ async function prosesPesanan() {
     }
 }
 
-function switchToOrders() {
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-orders').classList.remove('hidden');
-    document.getElementById('view-order-detail').classList.add('hidden'); 
-    document.getElementById('view-kredit')?.classList.add('hidden'); 
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    const footer = document.getElementById('footer-total');
-    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
-    
-    renderOrderList(); 
-}
-
-function backToHome() {
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-order-detail').classList.add('hidden');
-    document.getElementById('view-kredit')?.classList.add('hidden'); 
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    document.getElementById('view-home').classList.remove('hidden');
-    const footer = document.getElementById('footer-total');
-    if(footer) footer.classList.remove('translate-y-full', 'opacity-0');
-}
-
-function switchToKredit() {
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-order-detail').classList.add('hidden');
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    document.getElementById('view-kredit').classList.remove('hidden');
-    const footer = document.getElementById('footer-total');
-    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
-    
-    renderKreditList(); 
-}
-
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -687,9 +806,14 @@ async function hapusPesanan(id, event) {
     
     const viewKreditDetail = document.getElementById('view-kredit-detail');
     const viewKredit = document.getElementById('view-kredit');
+    const viewLaporan = document.getElementById('view-laporan');
 
     if (viewKredit && !viewKredit.classList.contains('hidden')) {
         renderKreditList();
+    }
+    
+    if (viewLaporan && !viewLaporan.classList.contains('hidden')) {
+        renderLaporan();
     }
 
     if (viewKreditDetail && !viewKreditDetail.classList.contains('hidden') && isKredit) {
@@ -743,6 +867,11 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
 
     renderOrderList();
     renderKreditList();
+    
+    const viewLaporan = document.getElementById('view-laporan');
+    if (viewLaporan && !viewLaporan.classList.contains('hidden')) {
+        renderLaporan();
+    }
     
     const serverIds = ordersToDelete.filter(o => !o._isPending).map(o => o.id);
     
@@ -837,7 +966,6 @@ function renderOrderList() {
         `;
     }).join('');
 }
-
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
     const order = allOrders.find(o => o.id == id);
@@ -922,6 +1050,7 @@ function openOrderDetail(id) {
     document.getElementById('view-orders').classList.add('hidden');
     document.getElementById('view-kredit')?.classList.add('hidden'); 
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
+    document.getElementById('view-laporan')?.classList.add('hidden');
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
 
@@ -968,14 +1097,12 @@ function refreshPaymentUI(paymentStatus) {
     if (paymentStatus === 'cash') {
         const classLunas = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "CASH"; badgeDetail.className = classLunas; }
-        // REVISI PREMIUM: Badge Nota diperbesar text-xs, min-w-[85px]
         if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-xs bg-emerald-950/50 text-emerald-400 px-4 py-2 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassActive + disabledStateClass + "border-green-500 bg-green-500 text-white";
         btnKredit.className = baseBtnClassInactive + disabledStateClass;
     } else {
         const classKredit = "text-[10px] bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "KREDIT"; badgeDetail.className = classKredit; }
-        // REVISI PREMIUM: Badge Nota diperbesar text-xs, min-w-[85px]
         if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-xs bg-rose-950/50 text-rose-400 px-4 py-2 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassInactive + disabledStateClass;
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
@@ -1068,7 +1195,6 @@ function downloadETicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    // REVISI PREMIUM: Memastikan kontainer bayangan tidak mewarisi height layar
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
@@ -1100,7 +1226,6 @@ function downloadETicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    // REVISI PREMIUM: Memberi jeda render & mengunci 'height' agar tidak ada ruang hitam (blank space)
     setTimeout(() => {
         const targetHeight = clone.offsetHeight;
 
@@ -1394,7 +1519,6 @@ function cetakRekapKredit() {
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
             if(itemName === "BC Besar") itemName = "Bed Cover Besar";
 
-            // REVISI PREMIUM: Memperbesar font pada item nota kredit
             itemsHTML += `
             <div class="flex justify-between items-center text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3.5">
                 <div class="flex flex-col">
@@ -1444,7 +1568,6 @@ function downloadKreditTicket() {
     btnDownload.disabled = true;
     btnDownload.classList.add('opacity-70');
 
-    // REVISI PREMIUM: Memastikan kontainer bayangan tidak mewarisi height layar
     const offScreenContainer = document.createElement('div');
     offScreenContainer.style.position = 'absolute';
     offScreenContainer.style.left = '-9999px';
@@ -1476,7 +1599,6 @@ function downloadKreditTicket() {
     offScreenContainer.appendChild(clone);
     document.body.appendChild(offScreenContainer);
 
-    // REVISI PREMIUM: Mengunci height ke dalam konfigurasi canvas
     setTimeout(() => {
         const targetHeight = clone.offsetHeight;
 
@@ -1549,6 +1671,3 @@ function shakeElement(id) {
         setTimeout(() => { el.classList.remove('ring-2', 'ring-red-500', 'animate-pulse'); }, 500);
     }
 }
-
-// Jalankan aplikasi pertama kali
-initApp();
