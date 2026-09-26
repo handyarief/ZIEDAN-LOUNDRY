@@ -102,7 +102,7 @@ function updateCustomServiceUI(id) {
 }
 
 function openCustomServiceModal(event, id) {
-    history.pushState({ view: 'custom-service-modal' }, "", ""); // <-- REVISI
+    history.pushState({ view: 'custom-service-modal' }, "", "");
     if (event) event.stopPropagation(); 
     
     const customSrv = services.find(s => s.id === id);
@@ -231,7 +231,7 @@ function saveCustomServiceConfig() {
         if (customSrv) {
             customSrv.name = nameVal;
             customSrv.price = priceVal;
-            customSrv.unit = isKg ? 'pcs' : 'pcs'; // Defaulting handling
+            customSrv.unit = isKg ? 'kg' : 'pcs';
 
             storedData[id] = {
                 name: customSrv.name,
@@ -283,7 +283,6 @@ function savePendingOrders(orders) {
         console.warn("Gagal menyimpan pending orders:", e);
     }
 }
-
 // --- SINKRONISASI PENDING ORDERS KE SUPABASE ---
 async function syncPendingOrders() {
     const pending = getPendingOrders();
@@ -457,15 +456,17 @@ function switchToLaporan(fromHistory = false) {
     renderLaporan();
 }
 
-// FITUR BARU: RENDER DATA LAPORAN BULANAN (DENGAN QTY & SATUAN)
+// REVISI: RENDER DATA LAPORAN BULANAN (REKAP TRANSAKSI + REKAP LAYANAN 3D)
 function renderLaporan() {
     const container = document.getElementById('laporan-list');
+    const containerServices = document.getElementById('laporan-summary-services'); 
     const qtyEl = document.getElementById('laporan-summary-qty');
     const omsetEl = document.getElementById('laporan-summary-omset');
     const inputBulan = document.getElementById('input-bulan-laporan').value;
 
     if (!inputBulan) {
         container.innerHTML = '<p class="text-center text-xs text-gray-400 py-4">Silakan pilih bulan.</p>';
+        if(containerServices) containerServices.innerHTML = '';
         qtyEl.innerText = "0";
         omsetEl.innerText = "Rp 0";
         return;
@@ -479,11 +480,12 @@ function renderLaporan() {
         return d.getFullYear() == targetYear && String(d.getMonth() + 1).padStart(2, '0') == targetMonth;
     });
 
-    // Urutkan berdasarkan tanggal terlama ke terbaru (kronologis laporan)
+    // Urutkan berdasarkan tanggal terlama ke terbaru
     filteredOrders.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     let totalPesanan = 0;
     let totalOmset = 0;
+    let serviceAggregator = {}; 
 
     if (filteredOrders.length === 0) {
         container.innerHTML = `
@@ -492,6 +494,7 @@ function renderLaporan() {
                 <p class="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Tidak ada data di bulan ini</p>
             </div>
         `;
+        if(containerServices) containerServices.innerHTML = '';
         qtyEl.innerText = "0";
         omsetEl.innerText = "Rp 0";
         return;
@@ -502,13 +505,27 @@ function renderLaporan() {
         totalPesanan += 1;
         
         const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+        
         let serviceNames = itemsArray.map(i => {
             let name = i.name;
             if(name === "BC Kecil") name = "Bed Cover Kecil";
             if(name === "BC Sedang") name = "Bed Cover Sedang";
             if(name === "BC Besar") name = "Bed Cover Besar";
             
-            // REVISI: Tampilkan nama beserta QTY dan SATUAN
+            // --- MENGHITUNG REKAP LAYANAN ---
+            let key = `${name}_${i.unit}`;
+            if (!serviceAggregator[key]) {
+                serviceAggregator[key] = {
+                    name: name,
+                    unit: i.unit,
+                    totalQty: 0,
+                    totalRevenue: 0
+                };
+            }
+            serviceAggregator[key].totalQty += parseFloat(i.qty || 0);
+            serviceAggregator[key].totalRevenue += parseFloat((i.qty || 0) * (i.price || 0));
+            // --------------------------------
+            
             return `${name} (${i.qty} ${i.unit.toUpperCase()})`;
         }).join(', ');
 
@@ -550,8 +567,56 @@ function renderLaporan() {
     container.innerHTML = itemsHtml;
     qtyEl.innerText = totalPesanan;
     omsetEl.innerText = formatRupiah(totalOmset);
-}
 
+    // --- RENDER LAYANAN 3D ---
+    if (containerServices) {
+        // Urutkan berdasarkan pendapatan terbesar
+        const aggArray = Object.values(serviceAggregator).sort((a, b) => b.totalRevenue - a.totalRevenue);
+        
+        if (aggArray.length === 0) {
+             containerServices.innerHTML = '';
+        } else {
+             const bgGradients = [
+                 'from-blue-500 to-cyan-500',
+                 'from-emerald-500 to-teal-500',
+                 'from-violet-500 to-purple-500',
+                 'from-rose-500 to-pink-500',
+                 'from-amber-500 to-orange-500',
+                 'from-indigo-500 to-blue-500'
+             ];
+
+             const htmlServices = aggArray.map((srv, idx) => {
+                 const bg = bgGradients[idx % bgGradients.length];
+                 const shadowColor = bg.includes('cyan') ? 'rgba(6,182,212,0.4)' : bg.includes('teal') ? 'rgba(20,184,166,0.4)' : bg.includes('purple') ? 'rgba(147,51,234,0.4)' : bg.includes('pink') ? 'rgba(236,72,153,0.4)' : bg.includes('orange') ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)';
+                 
+                 // Menggunakan teknik inset shadow, gradient, dan blur effects khas UI Futuristik/Neo-Glassmorphism
+                 return `
+                 <div class="relative overflow-hidden rounded-[1.25rem] p-3.5 bg-gradient-to-br ${bg} text-white shadow-[0_8px_15px_${shadowColor}] border border-white/30 transform hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
+                     <div class="absolute -right-6 -top-6 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
+                     <div class="absolute -left-4 -bottom-4 w-16 h-16 bg-black/10 rounded-full blur-md pointer-events-none"></div>
+                     
+                     <div class="relative z-10 flex flex-col h-full justify-between">
+                        <div class="mb-3">
+                            <h4 class="text-[11px] font-black uppercase tracking-wider leading-tight drop-shadow-md line-clamp-1">${srv.name}</h4>
+                        </div>
+                        <div class="flex items-end justify-between border-t border-white/20 pt-2">
+                            <div class="flex flex-col">
+                                <span class="text-[8px] font-semibold opacity-75 uppercase tracking-widest leading-none mb-0.5">Total</span>
+                                <span class="text-xl font-black drop-shadow-md leading-none">${srv.totalQty}<span class="text-[9px] ml-0.5 font-bold uppercase opacity-80">${srv.unit}</span></span>
+                            </div>
+                            <div class="bg-black/25 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/10 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)]">
+                                <span class="text-[10px] font-bold drop-shadow-sm">${formatRupiah(srv.totalRevenue)}</span>
+                            </div>
+                        </div>
+                     </div>
+                 </div>
+                 `;
+             }).join('');
+
+             containerServices.innerHTML = htmlServices;
+        }
+    }
+}
 // --- FUNGSI UTAMA & INISIALISASI ---
 function initApp() {
     // Inisialisasi initial state push agar back button ter-track
@@ -807,6 +872,7 @@ async function prosesPesanan() {
         btnSimpan.disabled = false;
     }
 }
+
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -841,7 +907,6 @@ async function hapusPesanan(id, event) {
     if (viewKreditDetail && !viewKreditDetail.classList.contains('hidden') && isKredit) {
         const sisaKredit = allOrders.filter(o => o.customer.trim().toUpperCase() === targetCustomerName.trim().toUpperCase() && o.payment === 'kredit');
         if (sisaKredit.length > 0) {
-            // Membuka ulang detail untuk refresh (tanpa push history baru jika tidak diperlukan)
             openKreditDetail(targetCustomerName, true); 
         } else {
             closeKreditDetail(); 
@@ -867,7 +932,6 @@ async function hapusPesanan(id, event) {
         }
     }
 }
-
 async function hapusSemuaKreditPelanggan(customerName, event) {
     if (event) event.stopPropagation();
 
@@ -992,7 +1056,7 @@ function renderOrderList() {
 
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
-    history.pushState({ view: 'order-detail' }, "", ""); // <-- REVISI History API
+    history.pushState({ view: 'order-detail' }, "", "");
     
     const order = allOrders.find(o => o.id == id);
     if (!order) return;
@@ -1085,7 +1149,7 @@ function closeOrderDetail(fromHistory = false) {
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
     
-    if (!fromHistory) history.back(); // <-- REVISI History API
+    if (!fromHistory) history.back();
 }
 
 async function updatePayment(method) {
@@ -1220,7 +1284,6 @@ function closeTicketModal() {
         modal.classList.remove('flex');
     }, 300);
 }
-
 function downloadETicket() {
     const originalTicketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
@@ -1366,7 +1429,7 @@ function renderKreditList() {
 }
 
 function openKreditDetail(customerName, isRefresh = false) {
-    if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", ""); // <-- REVISI History API
+    if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", "");
     
     const targetName = customerName.trim().toUpperCase();
     currentDetailKreditName = targetName;
@@ -1445,7 +1508,7 @@ function closeKreditDetail(fromHistory = false) {
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
     
-    if (!fromHistory) history.back(); // <-- REVISI History API
+    if (!fromHistory) history.back(); 
 }
 
 function openModalBayarKredit() {
@@ -1530,7 +1593,7 @@ async function prosesBayarKredit() {
     btn.innerHTML = originalHtml;
     btn.disabled = false;
     closeModalBayarKredit();
-    openKreditDetail(currentDetailKreditName, true); // Refresh detail tanpa pushState tambahan
+    openKreditDetail(currentDetailKreditName, true); 
 }
 
 function cetakRekapKredit() {
@@ -1734,12 +1797,9 @@ window.addEventListener('popstate', (event) => {
         else if (view === 'kredit') switchToKredit(true);
         else if (view === 'laporan') switchToLaporan(true);
         else if (view === 'order-detail') {
-            // Biarkan browser menghandle jika user memaksa maju (forward) ke history rincian pesanan
         } else if (view === 'kredit-detail') {
-            // Biarkan browser menghandle jika user memaksa maju (forward) ke history rincian kredit
         }
     } else {
-        // Fallback: Jika tidak ada state yang jelas, kembali ke halaman yang sesuai
         if (!document.getElementById('view-order-detail').classList.contains('hidden')) {
             closeOrderDetail(true);
         } else if (!document.getElementById('view-kredit-detail').classList.contains('hidden')) {
@@ -1750,5 +1810,4 @@ window.addEventListener('popstate', (event) => {
     }
 });
 
-// REVISI BUG 1: Inisialisasi Aplikasi Saat Halaman Selesai Dimuat
 window.addEventListener('DOMContentLoaded', initApp);
