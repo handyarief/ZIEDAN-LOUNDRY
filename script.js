@@ -102,6 +102,7 @@ function updateCustomServiceUI(id) {
 }
 
 function openCustomServiceModal(event, id) {
+    history.pushState({ view: 'custom-service-modal' }, "", ""); // <-- REVISI
     if (event) event.stopPropagation(); 
     
     const customSrv = services.find(s => s.id === id);
@@ -230,7 +231,7 @@ function saveCustomServiceConfig() {
         if (customSrv) {
             customSrv.name = nameVal;
             customSrv.price = priceVal;
-            customSrv.unit = isKg ? 'kg' : 'pcs';
+            customSrv.unit = isKg ? 'pcs' : 'pcs'; // Defaulting handling
 
             storedData[id] = {
                 name: customSrv.name,
@@ -369,7 +370,7 @@ async function fetchOrders() {
         if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
     }
 }
-// --- FUNGSI NAVIGASI HEADER ---
+// --- FUNGSI NAVIGASI HEADER & HISTORY API (TOMBOL BACK FISIK) ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
     const btn = document.getElementById('menu-btn');
@@ -392,7 +393,8 @@ function navTo(page) {
     toggleMenu(); 
 }
 
-function switchToOrders() {
+function switchToOrders(fromHistory = false) {
+    if (!fromHistory) history.pushState({ view: 'orders' }, "", "");
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
     document.getElementById('view-order-detail').classList.add('hidden'); 
@@ -405,7 +407,8 @@ function switchToOrders() {
     renderOrderList(); 
 }
 
-function backToHome() {
+function backToHome(fromHistory = false) {
+    if (!fromHistory) history.pushState({ view: 'home' }, "", "");
     document.getElementById('view-orders').classList.add('hidden');
     document.getElementById('view-order-detail').classList.add('hidden');
     document.getElementById('view-kredit')?.classList.add('hidden'); 
@@ -416,7 +419,8 @@ function backToHome() {
     if(footer) footer.classList.remove('translate-y-full', 'opacity-0');
 }
 
-function switchToKredit() {
+function switchToKredit(fromHistory = false) {
+    if (!fromHistory) history.pushState({ view: 'kredit' }, "", "");
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.add('hidden');
     document.getElementById('view-order-detail').classList.add('hidden');
@@ -430,7 +434,8 @@ function switchToKredit() {
 }
 
 // FITUR BARU: NAVIGASI KE LAPORAN BULANAN
-function switchToLaporan() {
+function switchToLaporan(fromHistory = false) {
+    if (!fromHistory) history.pushState({ view: 'laporan' }, "", "");
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.add('hidden');
     document.getElementById('view-order-detail').classList.add('hidden');
@@ -452,7 +457,7 @@ function switchToLaporan() {
     renderLaporan();
 }
 
-// FITUR BARU: RENDER DATA LAPORAN BULANAN
+// FITUR BARU: RENDER DATA LAPORAN BULANAN (DENGAN QTY & SATUAN)
 function renderLaporan() {
     const container = document.getElementById('laporan-list');
     const qtyEl = document.getElementById('laporan-summary-qty');
@@ -502,7 +507,9 @@ function renderLaporan() {
             if(name === "BC Kecil") name = "Bed Cover Kecil";
             if(name === "BC Sedang") name = "Bed Cover Sedang";
             if(name === "BC Besar") name = "Bed Cover Besar";
-            return name;
+            
+            // REVISI: Tampilkan nama beserta QTY dan SATUAN
+            return `${name} (${i.qty} ${i.unit.toUpperCase()})`;
         }).join(', ');
 
         if(!serviceNames) serviceNames = "-";
@@ -526,9 +533,9 @@ function renderLaporan() {
                     <i class="fas fa-map-marker-alt text-indigo-300/70 mt-0.5"></i>
                     <span class="flex-1">${order.whatsapp || '-'}</span>
                 </span>
-                <span class="text-[10px] text-gray-500 font-bold leading-tight truncate flex items-center gap-1.5">
-                    <i class="fas fa-tag text-indigo-300/70"></i>
-                    ${serviceNames}
+                <span class="text-[10px] text-gray-500 font-bold leading-tight flex items-start gap-1.5">
+                    <i class="fas fa-tag text-indigo-300/70 mt-0.5"></i>
+                    <span class="flex-1">${serviceNames}</span>
                 </span>
                 
                 <div class="flex justify-between items-end mt-2 pt-2 border-t border-indigo-100/50">
@@ -547,6 +554,9 @@ function renderLaporan() {
 
 // --- FUNGSI UTAMA & INISIALISASI ---
 function initApp() {
+    // Inisialisasi initial state push agar back button ter-track
+    history.replaceState({ view: 'home' }, "", "");
+    
     loadCustomService(); 
 
     services.forEach(srv => {
@@ -678,6 +688,7 @@ function updateQty(id, value) {
     state.quantities[id] = val;
     hitungTotal();
 }
+
 function hitungTotal() {
     state.total = 0;
     state.selectedServiceIds.forEach(id => {
@@ -796,7 +807,6 @@ async function prosesPesanan() {
         btnSimpan.disabled = false;
     }
 }
-
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -831,7 +841,8 @@ async function hapusPesanan(id, event) {
     if (viewKreditDetail && !viewKreditDetail.classList.contains('hidden') && isKredit) {
         const sisaKredit = allOrders.filter(o => o.customer.trim().toUpperCase() === targetCustomerName.trim().toUpperCase() && o.payment === 'kredit');
         if (sisaKredit.length > 0) {
-            openKreditDetail(targetCustomerName); 
+            // Membuka ulang detail untuk refresh (tanpa push history baru jika tidak diperlukan)
+            openKreditDetail(targetCustomerName, true); 
         } else {
             closeKreditDetail(); 
         }
@@ -902,6 +913,7 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
+
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -980,6 +992,8 @@ function renderOrderList() {
 
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
+    history.pushState({ view: 'order-detail' }, "", ""); // <-- REVISI History API
+    
     const order = allOrders.find(o => o.id == id);
     if (!order) return;
     currentOrderId = order.id;
@@ -1064,6 +1078,14 @@ function openOrderDetail(id) {
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     document.getElementById('view-laporan')?.classList.add('hidden');
     document.getElementById('view-order-detail').classList.remove('hidden');
+}
+
+function closeOrderDetail(fromHistory = false) {
+    currentOrderId = null; 
+    document.getElementById('view-order-detail').classList.add('hidden');
+    document.getElementById('view-orders').classList.remove('hidden');
+    
+    if (!fromHistory) history.back(); // <-- REVISI History API
 }
 
 async function updatePayment(method) {
@@ -1174,6 +1196,7 @@ function refreshStatusUI(status) {
         }
     }
 }
+
 function openTicketModal() {
     const modal = document.getElementById('ticket-modal');
     const modalContent = document.getElementById('ticket-modal-content');
@@ -1278,12 +1301,6 @@ function downloadETicket() {
     }, 150);
 }
 
-function closeOrderDetail() {
-    currentOrderId = null; 
-    document.getElementById('view-order-detail').classList.add('hidden');
-    document.getElementById('view-orders').classList.remove('hidden');
-}
-
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1348,13 +1365,15 @@ function renderKreditList() {
     }).join('');
 }
 
-function openKreditDetail(customerName) {
+function openKreditDetail(customerName, isRefresh = false) {
+    if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", ""); // <-- REVISI History API
+    
     const targetName = customerName.trim().toUpperCase();
     currentDetailKreditName = targetName;
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === targetName && o.payment === 'kredit');
     
     if (customerOrders.length === 0) {
-        closeKreditDetail();
+        closeKreditDetail(true);
         return;
     }
 
@@ -1420,11 +1439,13 @@ function openKreditDetail(customerName) {
     document.getElementById('view-kredit-detail').classList.remove('hidden');
 }
 
-function closeKreditDetail() {
+function closeKreditDetail(fromHistory = false) {
     currentDetailKreditName = null;
     document.getElementById('view-kredit-detail').classList.add('hidden');
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
+    
+    if (!fromHistory) history.back(); // <-- REVISI History API
 }
 
 function openModalBayarKredit() {
@@ -1509,7 +1530,7 @@ async function prosesBayarKredit() {
     btn.innerHTML = originalHtml;
     btn.disabled = false;
     closeModalBayarKredit();
-    openKreditDetail(currentDetailKreditName);
+    openKreditDetail(currentDetailKreditName, true); // Refresh detail tanpa pushState tambahan
 }
 
 function cetakRekapKredit() {
@@ -1684,6 +1705,50 @@ function shakeElement(id) {
     }
 }
 
+// --- PENANGANAN TOMBOL BACK FISIK (HARDWARE BACK BUTTON) ---
+window.addEventListener('popstate', (event) => {
+    // 1. Cek apabila ada overlay/modal yang sedang terbuka
+    const menu = document.getElementById('menu-overlay');
+    if (menu && !menu.classList.contains('hidden')) {
+        toggleMenu();
+        return;
+    }
+    
+    const modals = ['custom-service-modal', 'kredit-pay-modal', 'kredit-ticket-modal', 'ticket-modal'];
+    for (let modalId of modals) {
+        const modal = document.getElementById(modalId);
+        if (modal && !modal.classList.contains('hidden')) {
+            if (modalId === 'custom-service-modal') closeCustomServiceModal();
+            else if (modalId === 'kredit-pay-modal') closeModalBayarKredit();
+            else if (modalId === 'kredit-ticket-modal') closeKreditTicketModal();
+            else if (modalId === 'ticket-modal') closeTicketModal();
+            return; 
+        }
+    }
+
+    // 2. Navigasi view utama (SPA Routing)
+    if (event.state && event.state.view) {
+        const view = event.state.view;
+        if (view === 'home') backToHome(true);
+        else if (view === 'orders') switchToOrders(true);
+        else if (view === 'kredit') switchToKredit(true);
+        else if (view === 'laporan') switchToLaporan(true);
+        else if (view === 'order-detail') {
+            // Biarkan browser menghandle jika user memaksa maju (forward) ke history rincian pesanan
+        } else if (view === 'kredit-detail') {
+            // Biarkan browser menghandle jika user memaksa maju (forward) ke history rincian kredit
+        }
+    } else {
+        // Fallback: Jika tidak ada state yang jelas, kembali ke halaman yang sesuai
+        if (!document.getElementById('view-order-detail').classList.contains('hidden')) {
+            closeOrderDetail(true);
+        } else if (!document.getElementById('view-kredit-detail').classList.contains('hidden')) {
+            closeKreditDetail(true);
+        } else {
+            backToHome(true);
+        }
+    }
+});
+
 // REVISI BUG 1: Inisialisasi Aplikasi Saat Halaman Selesai Dimuat
 window.addEventListener('DOMContentLoaded', initApp);
-
