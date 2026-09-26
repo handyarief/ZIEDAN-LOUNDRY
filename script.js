@@ -452,7 +452,6 @@ function switchToLaporan(fromHistory = false) {
     
     renderLaporan();
 }
-
 // REVISI: RENDER DATA LAPORAN BULANAN (REKAP TRANSAKSI + REKAP LAYANAN 3D)
 function renderLaporan() {
     const container = document.getElementById('laporan-list');
@@ -540,7 +539,7 @@ function renderLaporan() {
                     <span class="w-6 h-6 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black shadow-inner border border-indigo-100 group-hover:scale-105 transition-transform">${index + 1}</span>
                     <span class="text-sm font-black text-indigo-900 truncate uppercase tracking-wide leading-none">${order.customer}</span>
                 </div>
-                <span class="text-[9px] text-indigo-500 font-bold bg-white/80 px-2 py-1 rounded-md shadow-sm border border-indigo-50 flex-shrink-0 tracking-wider">${tgl}</span>
+                <span class="text-xs text-indigo-500 font-bold bg-white/80 px-2.5 py-1 rounded-md shadow-sm border border-indigo-50 flex-shrink-0 tracking-wider">${tgl}</span>
             </div>
             
             <div class="flex flex-col gap-1.5 pl-8">
@@ -601,7 +600,7 @@ function renderLaporan() {
                         <span class="text-2xl font-black drop-shadow-md leading-none block">${safeQty}<span class="text-[9px] ml-0.5 font-bold uppercase opacity-80">${srv.unit}</span></span>
                      </div>
                      <div class="relative z-10 w-full bg-black/25 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] text-center mt-auto">
-                        <span class="text-[11px] font-bold drop-shadow-sm">${formatRupiah(srv.totalRevenue)}</span>
+                        <span class="text-sm font-black drop-shadow-sm">${formatRupiah(srv.totalRevenue)}</span>
                      </div>
                  </div>
                  `;
@@ -864,7 +863,6 @@ async function prosesPesanan() {
         btnSimpan.disabled = false;
     }
 }
-
 // --- FUNGSI HAPUS PESANAN ---
 async function hapusPesanan(id, event) {
     if (event) event.stopPropagation();
@@ -1355,7 +1353,6 @@ function downloadETicket() {
         });
     }, 150);
 }
-
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
