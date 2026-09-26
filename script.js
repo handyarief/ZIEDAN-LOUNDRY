@@ -283,6 +283,7 @@ function savePendingOrders(orders) {
         console.warn("Gagal menyimpan pending orders:", e);
     }
 }
+
 // --- SINKRONISASI PENDING ORDERS KE SUPABASE ---
 async function syncPendingOrders() {
     const pending = getPendingOrders();
@@ -298,8 +299,6 @@ async function syncPendingOrders() {
                 items: typeof order.items === 'string' ? order.items : JSON.stringify(order.items)
             };
             
-            // REVISI BUG 3: Hapus property id yang berupa string offline sebelum insert ke supabase
-            // Agar database otomatis men-generate Primary Key sendiri yang valid.
             delete orderToUpload.id; 
             delete orderToUpload._localId;
             delete orderToUpload._isPending;
@@ -322,7 +321,6 @@ async function syncPendingOrders() {
         fetchOrders();
     }
 }
-
 // --- FUNGSI FETCH DATA DARI SUPABASE ---
 async function fetchOrders() {
     try {
@@ -344,15 +342,13 @@ async function fetchOrders() {
             return;
         }
 
-        // REVISI BUG 2: Jangan langsung menimpa array lokal dengan [] jika server kosong
-        // Hal ini untuk menghindari hilangnya data saat RLS error / limit Supabase tercapai
         const localData = getLocalOrders();
         if ((!data || data.length === 0) && localData.length > 0) {
             console.warn("Data server kosong tapi terdapat data lokal. Mencegah overwrite data.");
-            allOrders = localData; // Pertahankan data lokal
+            allOrders = localData; 
         } else {
             allOrders = data || [];
-            saveLocalOrders(allOrders); // Sinkronisasi normal
+            saveLocalOrders(allOrders); 
         }
         
         if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
@@ -369,6 +365,7 @@ async function fetchOrders() {
         if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
     }
 }
+
 // --- FUNGSI NAVIGASI HEADER & HISTORY API (TOMBOL BACK FISIK) ---
 function toggleMenu() {
     const menu = document.getElementById('menu-overlay');
@@ -522,6 +519,7 @@ function renderLaporan() {
                     totalRevenue: 0
                 };
             }
+            // Mencegah floating point issue saat menjumlahkan
             serviceAggregator[key].totalQty += parseFloat(i.qty || 0);
             serviceAggregator[key].totalRevenue += parseFloat((i.qty || 0) * (i.price || 0));
             // --------------------------------
@@ -568,7 +566,7 @@ function renderLaporan() {
     qtyEl.innerText = totalPesanan;
     omsetEl.innerText = formatRupiah(totalOmset);
 
-    // --- RENDER LAYANAN 3D ---
+    // --- RENDER LAYANAN 3D (REVISI STRUKTUR VERTIKAL & FLOATING POINT) ---
     if (containerServices) {
         // Urutkan berdasarkan pendapatan terbesar
         const aggArray = Object.values(serviceAggregator).sort((a, b) => b.totalRevenue - a.totalRevenue);
@@ -589,25 +587,21 @@ function renderLaporan() {
                  const bg = bgGradients[idx % bgGradients.length];
                  const shadowColor = bg.includes('cyan') ? 'rgba(6,182,212,0.4)' : bg.includes('teal') ? 'rgba(20,184,166,0.4)' : bg.includes('purple') ? 'rgba(147,51,234,0.4)' : bg.includes('pink') ? 'rgba(236,72,153,0.4)' : bg.includes('orange') ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)';
                  
-                 // Menggunakan teknik inset shadow, gradient, dan blur effects khas UI Futuristik/Neo-Glassmorphism
+                 // FIX: Menghilangkan error floating point seperti 242.100000 jadi 242.1
+                 const safeQty = Number(parseFloat(srv.totalQty).toFixed(2));
+                 
+                 // FIX: Layout baru yang tertata rapi dari atas ke bawah
                  return `
-                 <div class="relative overflow-hidden rounded-[1.25rem] p-3.5 bg-gradient-to-br ${bg} text-white shadow-[0_8px_15px_${shadowColor}] border border-white/30 transform hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300">
+                 <div class="relative overflow-hidden rounded-[1.25rem] p-3.5 bg-gradient-to-br ${bg} text-white shadow-[0_8px_15px_${shadowColor}] border border-white/30 transform hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between">
                      <div class="absolute -right-6 -top-6 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
                      <div class="absolute -left-4 -bottom-4 w-16 h-16 bg-black/10 rounded-full blur-md pointer-events-none"></div>
                      
-                     <div class="relative z-10 flex flex-col h-full justify-between">
-                        <div class="mb-3">
-                            <h4 class="text-[11px] font-black uppercase tracking-wider leading-tight drop-shadow-md line-clamp-1">${srv.name}</h4>
-                        </div>
-                        <div class="flex items-end justify-between border-t border-white/20 pt-2">
-                            <div class="flex flex-col">
-                                <span class="text-[8px] font-semibold opacity-75 uppercase tracking-widest leading-none mb-0.5">Total</span>
-                                <span class="text-xl font-black drop-shadow-md leading-none">${srv.totalQty}<span class="text-[9px] ml-0.5 font-bold uppercase opacity-80">${srv.unit}</span></span>
-                            </div>
-                            <div class="bg-black/25 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/10 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)]">
-                                <span class="text-[10px] font-bold drop-shadow-sm">${formatRupiah(srv.totalRevenue)}</span>
-                            </div>
-                        </div>
+                     <div class="relative z-10 text-center mb-3 mt-1">
+                        <h4 class="text-[11px] font-black uppercase tracking-wider leading-tight drop-shadow-md truncate mb-2 text-white/90">${srv.name}</h4>
+                        <span class="text-2xl font-black drop-shadow-md leading-none block">${safeQty}<span class="text-[9px] ml-0.5 font-bold uppercase opacity-80">${srv.unit}</span></span>
+                     </div>
+                     <div class="relative z-10 w-full bg-black/25 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] text-center mt-auto">
+                        <span class="text-[11px] font-bold drop-shadow-sm">${formatRupiah(srv.totalRevenue)}</span>
                      </div>
                  </div>
                  `;
@@ -619,7 +613,6 @@ function renderLaporan() {
 }
 // --- FUNGSI UTAMA & INISIALISASI ---
 function initApp() {
-    // Inisialisasi initial state push agar back button ter-track
     history.replaceState({ view: 'home' }, "", "");
     
     loadCustomService(); 
@@ -711,7 +704,6 @@ function updateServiceUI() {
         let isActive = false;
         
         if (idx === 2) {
-            // REVISI PREMIUM: Dynamic Feedback untuk Teks Bed Cover Terpilih
             const totalBedCover = (state.quantities[21] || 0) + (state.quantities[22] || 0) + (state.quantities[23] || 0);
             isActive = totalBedCover > 0;
             
@@ -932,6 +924,7 @@ async function hapusPesanan(id, event) {
         }
     }
 }
+
 async function hapusSemuaKreditPelanggan(customerName, event) {
     if (event) event.stopPropagation();
 
@@ -993,7 +986,6 @@ function renderOrderList() {
     container.innerHTML = allOrders.map((order, index) => {
         const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         
-        // REVISI PREMIUM: Interceptor untuk memastikan cache db yang lama menampilkan nama utuh
         itemsArray.forEach(item => {
             if(item.name === "BC Kecil") item.name = "Bed Cover Kecil";
             if(item.name === "BC Sedang") item.name = "Bed Cover Sedang";
@@ -1053,7 +1045,6 @@ function renderOrderList() {
         `;
     }).join('');
 }
-
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
     history.pushState({ view: 'order-detail' }, "", "");
@@ -1284,6 +1275,7 @@ function closeTicketModal() {
         modal.classList.remove('flex');
     }, 300);
 }
+
 function downloadETicket() {
     const originalTicketElement = document.getElementById('ticket-area');
     const btnDownload = document.getElementById('btn-download');
@@ -1427,7 +1419,6 @@ function renderKreditList() {
         `;
     }).join('');
 }
-
 function openKreditDetail(customerName, isRefresh = false) {
     if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", "");
     
