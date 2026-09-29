@@ -404,6 +404,7 @@ function backToHome(fromHistory = false) {
     document.getElementById('view-order-detail')?.classList.add('hidden');
     document.getElementById('view-kredit-detail')?.classList.add('hidden');
     document.getElementById('view-home').classList.remove('hidden');
+    document.getElementById('footer-total')?.classList.remove('hidden');
 }
 
 function switchToOrders(fromHistory = false) {
@@ -411,6 +412,7 @@ function switchToOrders(fromHistory = false) {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-kredit').classList.add('hidden');
     document.getElementById('view-laporan').classList.add('hidden');
+    document.getElementById('footer-total')?.classList.add('hidden');
     document.getElementById('view-orders').classList.remove('hidden');
     renderOrderList();
 }
@@ -420,6 +422,7 @@ function switchToKredit(fromHistory = false) {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.add('hidden');
     document.getElementById('view-laporan').classList.add('hidden');
+    document.getElementById('footer-total')?.classList.add('hidden');
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
 }
@@ -429,6 +432,7 @@ function switchToLaporan(fromHistory = false) {
     document.getElementById('view-home').classList.add('hidden');
     document.getElementById('view-orders').classList.add('hidden');
     document.getElementById('view-kredit').classList.add('hidden');
+    document.getElementById('footer-total')?.classList.add('hidden');
     document.getElementById('view-laporan').classList.remove('hidden');
     renderLaporan();
 }
