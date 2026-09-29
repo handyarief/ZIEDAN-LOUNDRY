@@ -414,7 +414,7 @@ function switchToLaporan(fromHistory = false) {
     renderLaporan();
 }
 
-// --- FUNGSI LAPORAN (INJEKSI PERBAIKAN) ---
+// --- FUNGSI LAPORAN ---
 function renderLaporan() {
     const inputBulan = document.getElementById('input-bulan-laporan');
     if(!inputBulan.value) {
@@ -827,7 +827,6 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
-
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -1213,7 +1212,6 @@ function downloadETicket() {
         });
     }, 150);
 }
-
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1468,13 +1466,15 @@ function cetakRekapKredit() {
     let notaPaid = 0;
 
     customerOrders.forEach(order => {
+        // [PERBAIKAN]: Hitung total keseluruhan TERLEBIH DAHULU agar sinkron dengan rincian total data kredit
+        notaTotal += order.total;
+        notaPaid += (order.kredit_paid || 0);
+
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
         
+        // Lewati merender item jika sudah lunas di struk/nota, namun nominalnya tetap masuk kalkulasi total
         if (isLunas) return;
-
-        notaTotal += order.total;
-        notaPaid += (order.kredit_paid || 0);
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
@@ -1601,6 +1601,103 @@ function downloadKreditTicket() {
     }, 150);
 }
 
+// [PERBAIKAN 2]: FUNGSI BARU UNTUK MODAL RIWAYAT PEMBAYARAN KREDIT FULL 3D
+function openKreditHistoryModal() {
+    if (!currentDetailKreditName) return;
+
+    const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
+    // Sortir dari yang terbaru ke terlama
+    customerOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const listContainer = document.getElementById('kredit-history-list');
+    document.getElementById('kh-customer-name').innerText = currentDetailKreditName;
+    document.getElementById('kh-total-sisa').innerText = formatRupiah(window.currentSisaKredit || 0);
+
+    let htmlContent = '';
+
+    if(customerOrders.length === 0) {
+        htmlContent = `<div class="text-center text-gray-400 text-xs py-8 font-bold">Belum ada riwayat transaksi.</div>`;
+    } else {
+        htmlContent = '<div class="space-y-4">';
+        customerOrders.forEach(order => {
+            const paid = order.kredit_paid || 0;
+            const sisa = order.total - paid;
+            const isLunas = sisa <= 0;
+            
+            const badgeClass = isLunas ? 'bg-green-100 text-green-600 border-green-200' : 'bg-red-100 text-red-600 border-red-200';
+            const badgeText = isLunas ? 'LUNAS' : 'BELUM LUNAS';
+            
+            // Extract items summary
+            const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+            const summaryService = itemsArr.map(i => {
+                let n = i.name;
+                if(n === "BC Kecil") n = "Bed Cover Kecil";
+                if(n === "BC Sedang") n = "Bed Cover Sedang";
+                if(n === "BC Besar") n = "Bed Cover Besar";
+                return `${n} (${i.qty}${i.unit.toUpperCase()})`;
+            }).join(', ');
+
+            htmlContent += `
+            <div class="bg-white rounded-2xl p-4 shadow-[0_8px_20px_rgba(0,0,0,0.04)] border border-gray-100 relative overflow-hidden group">
+                <div class="absolute left-0 top-0 w-1.5 h-full ${isLunas ? 'bg-green-400' : 'bg-red-400'}"></div>
+                <div class="flex justify-between items-start mb-2 pl-2">
+                    <div class="flex flex-col max-w-[70%]">
+                        <span class="text-xs font-bold text-gray-500">${formatTanggalLokal(order.date)}</span>
+                        <span class="text-[10px] text-gray-400 mt-1 truncate font-medium"><i class="fas fa-box-open mr-1 text-gray-300"></i>${summaryService}</span>
+                    </div>
+                    <span class="text-[9px] font-extrabold px-2 py-1 rounded-md border uppercase shadow-sm ${badgeClass}">${badgeText}</span>
+                </div>
+                <div class="bg-gray-50/80 rounded-xl p-3 border border-gray-100 mt-3 grid grid-cols-3 gap-2 divide-x divide-gray-200 shadow-inner">
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tagihan</span>
+                        <span class="text-[11px] font-black text-brand-900">${formatRupiah(order.total)}</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Dibayar</span>
+                        <span class="text-[11px] font-black text-green-600">${formatRupiah(paid)}</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Sisa</span>
+                        <span class="text-[11px] font-black ${isLunas ? 'text-green-500' : 'text-red-500'}">${formatRupiah(sisa)}</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        });
+        htmlContent += '</div>';
+    }
+
+    listContainer.innerHTML = htmlContent;
+
+    const modal = document.getElementById('kredit-history-modal');
+    const modalContent = document.getElementById('kredit-history-modal-content');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('translate-y-full', 'scale-95');
+        modalContent.classList.add('translate-y-0', 'scale-100');
+    }, 10);
+}
+
+function closeKreditHistoryModal() {
+    const modal = document.getElementById('kredit-history-modal');
+    const modalContent = document.getElementById('kredit-history-modal-content');
+    modal.classList.add('opacity-0');
+    modalContent.classList.remove('translate-y-0', 'scale-100');
+    
+    if(window.innerWidth < 640) {
+        modalContent.classList.add('translate-y-full');
+    } else {
+        modalContent.classList.add('scale-95');
+    }
+
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+}
+
 function resetForm() {
     document.getElementById('custName').value = "";
     document.getElementById('custAddress').value = ""; 
@@ -1646,7 +1743,7 @@ window.addEventListener('popstate', (event) => {
         return;
     }
     
-    const modals = ['custom-service-modal', 'kredit-pay-modal', 'kredit-ticket-modal', 'ticket-modal'];
+    const modals = ['custom-service-modal', 'kredit-pay-modal', 'kredit-ticket-modal', 'ticket-modal', 'kredit-history-modal'];
     for (let modalId of modals) {
         const modal = document.getElementById(modalId);
         if (modal && !modal.classList.contains('hidden')) {
@@ -1654,6 +1751,7 @@ window.addEventListener('popstate', (event) => {
             else if (modalId === 'kredit-pay-modal') closeModalBayarKredit();
             else if (modalId === 'kredit-ticket-modal') closeKreditTicketModal();
             else if (modalId === 'ticket-modal') closeTicketModal();
+            else if (modalId === 'kredit-history-modal') closeKreditHistoryModal();
             return; 
         }
     }
