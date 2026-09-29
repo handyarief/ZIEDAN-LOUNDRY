@@ -288,7 +288,7 @@
                         </div>
                     </div>
 
-                    <div onclick="toggleService(3)" id="srv-3" class="service-card group relative p-4 bg-brand-50/50 backdrop-blur-sm rounded-3xl border border-dashed border-brand-300 shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden–">
+                    <div onclick="toggleService(3)" id="srv-3" class="service-card group relative p-4 bg-brand-50/50 backdrop-blur-sm rounded-3xl border border-dashed border-brand-300 shadow-sm hover:shadow-soft transition-all duration-300 cursor-pointer overflow-hidden">
                         <div class="absolute top-3 right-3 opacity-0 check-icon transition-all duration-300 text-brand-500 transform scale-50 z-10">
                             <i class="fas fa-circle-check text-lg"></i>
                         </div>
@@ -425,17 +425,17 @@
                     <i class="fas fa-search-dollar text-white text-xs"></i>
                 </div>
 
-                <p class="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-80">Total Sisa Tagihan</p>
+                <p class="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-80">TOTAL TAGIHAN</p>
                 <h3 id="kredit-detail-sisa" class="text-3xl font-black leading-tight mb-4 drop-shadow-sm">Rp 0</h3>
                 
                 <div class="flex justify-between items-center bg-black/10 rounded-xl p-3 backdrop-blur-sm border border-white/10 group-hover:bg-black/20 transition-colors">
                     <div class="flex flex-col">
-                        <span class="text-[9px] uppercase tracking-wider opacity-70 font-bold">Total Tagihan</span>
+                        <span class="text-[9px] uppercase tracking-wider opacity-70 font-bold">SISA TAGIHAN</span>
                         <span id="kredit-detail-total" class="font-bold text-sm">Rp 0</span>
                     </div>
                     <div class="w-px h-6 bg-white/20"></div>
                     <div class="flex flex-col text-right">
-                        <span class="text-[9px] uppercase tracking-wider opacity-70 font-bold">Sudah Dibayar</span>
+                        <span class="text-[9px] uppercase tracking-wider opacity-70 font-bold">PEMBAYARAN TERAKHIR</span>
                         <span id="kredit-detail-paid" class="font-bold text-sm">Rp 0</span>
                     </div>
                 </div>
@@ -616,7 +616,7 @@
         </div>
     </div>
 
-    <!-- Modals (Tetap dipertahankan) -->
+    <!-- Modals -->
     <div id="kredit-pay-modal" class="fixed inset-0 z-[75] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
         <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl transform scale-95 transition-transform duration-300" id="kredit-pay-modal-content">
             <div class="flex justify-between items-center p-4 border-b border-brand-100 bg-gradient-to-r from-green-50 to-emerald-50 shrink-0">
@@ -772,7 +772,7 @@
                         </div>
                         <div class="flex flex-col gap-2 items-end">
                             <span id="ticket-payment-badge" class="text-[10px] bg-slate-800/80 text-cyan-400 px-3 py-1.5 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm">CASH</span>
-                            <span id="ticket-status-badge" class="text-[10px] bg-slate-800/80 text-blue-400 px-3 py-1.5 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm">PROSES</span>
+                            <span id="ticket-status-badge" class="text-[10px] bg-slate-800/80 text-blue-400 px-3 py-1.5 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[85px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm">PROSES</span>
                         </div>
                     </div>
 

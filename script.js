@@ -803,6 +803,7 @@ async function hapusPesanan(id, event) {
         }
     }
 }
+
 async function hapusSemuaKreditPelanggan(customerName, event) {
     if (event) event.stopPropagation();
 
@@ -848,6 +849,7 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
+
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -1232,6 +1234,7 @@ function downloadETicket() {
         });
     }, 150);
 }
+
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1250,7 +1253,7 @@ function renderKreditList() {
     const groupedKredit = {};
     kreditOrders.forEach(order => {
         const sisa = order.total - (order.kredit_paid || 0);
-        if (sisa <= 0) return; // PERBAIKAN: Abaikan pesanan yang sudah lunas dari akumulasi total
+        if (sisa <= 0) return; 
 
         const keyName = order.customer.trim().toUpperCase(); 
         if (!groupedKredit[keyName]) {
@@ -1261,7 +1264,7 @@ function renderKreditList() {
         groupedKredit[keyName].transactionCount += 1;
     });
 
-    const groupedArray = Object.values(groupedKredit); // Filter sudah dilakukan di atas
+    const groupedArray = Object.values(groupedKredit); 
 
     if (groupedArray.length === 0) {
         container.innerHTML = `
@@ -1310,6 +1313,7 @@ function renderKreditList() {
     }).join('');
 }
 
+// --- MODIFIKASI INTI: PERUBAHAN LOGIKA KOTAK MERAH (TAHAP 1) ---
 function openKreditDetail(customerName, isRefresh = false) {
     if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", "");
     
@@ -1334,7 +1338,7 @@ function openKreditDetail(customerName, isRefresh = false) {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
 
-        if (isLunas) return; // PERBAIKAN: Jangan tampilkan dan jangan jumlahkan pesanan yang sudah lunas
+        if (isLunas) return; 
 
         totalKreditAll += order.total;
         totalPaidAll += (order.kredit_paid || 0);
@@ -1368,13 +1372,35 @@ function openKreditDetail(customerName, isRefresh = false) {
         });
     });
 
+    // Menghitung Sisa Kredit Aktual (Untuk Label "TOTAL TAGIHAN" baru)
     const sisaKredit = totalKreditAll - totalPaidAll;
     
+    // Tarik Log Pembayaran Terakhir
+    const allLogs = getPaymentLogs();
+    const customerLogs = allLogs.filter(log => log.customer === targetName);
+    
+    let sisaTagihanTerakhir = 0;
+    let pembayaranTerakhir = 0;
+    
+    if(customerLogs.length > 0) {
+        // Karena array di-unshift, index 0 adalah riwayat terbaru
+        sisaTagihanTerakhir = customerLogs[0].sisaTagihanSetelahBayar;
+        pembayaranTerakhir = customerLogs[0].paidAmount;
+    }
+    
     document.getElementById('kredit-detail-items').innerHTML = itemsHTML;
-    document.getElementById('kredit-detail-total').innerText = formatRupiah(totalKreditAll);
-    document.getElementById('kredit-detail-paid').innerText = formatRupiah(totalPaidAll);
+    
+    // PEMETAAN ULANG NILAI KE DOM:
+    // 1. Teks Terbesar: "TOTAL TAGIHAN"
     document.getElementById('kredit-detail-sisa').innerText = formatRupiah(sisaKredit);
     
+    // 2. Kotak Bawah Kiri: "SISA TAGIHAN" (Sisa pada saat pembayaran terakhir)
+    document.getElementById('kredit-detail-total').innerText = formatRupiah(sisaTagihanTerakhir);
+    
+    // 3. Kotak Bawah Kanan: "PEMBAYARAN TERAKHIR" (Uang yang dibayar terakhir kali)
+    document.getElementById('kredit-detail-paid').innerText = formatRupiah(pembayaranTerakhir);
+    
+    // Window global variables tetap menggunakan logika lama untuk komputasi back-end
     window.currentSisaKredit = sisaKredit;
     window.currentTotalKredit = totalKreditAll;
     window.currentPaidKredit = totalPaidAll;
@@ -1383,7 +1409,7 @@ function openKreditDetail(customerName, isRefresh = false) {
     document.getElementById('view-kredit-detail').classList.remove('hidden');
 
     if (sisaKredit <= 0) {
-        closeKreditDetail(true); // Jika kebetulan tertutup semua, auto kembali
+        closeKreditDetail(true); 
     }
 }
 
@@ -1482,7 +1508,7 @@ async function prosesBayarKredit() {
         customer: currentDetailKreditName,
         date: new Date().toISOString(),
         paidAmount: inputVal,
-        totalTagihanSaatItu: window.currentTotalKredit,
+        totalTagihanSaatItu: window.currentSisaKredit, // Perubahan: disesuaikan agar log mencatat sisa kredit lama
         sisaTagihanSetelahBayar: window.currentSisaKredit - inputVal
     });
     savePaymentLog(logs);
@@ -1507,7 +1533,7 @@ function cetakRekapKredit() {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
         
-        if (isLunas) return; // PERBAIKAN: Lunas tidak dimasukkan ke cetak nota
+        if (isLunas) return; 
 
         notaTotal += order.total;
         notaPaid += (order.kredit_paid || 0);
