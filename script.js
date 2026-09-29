@@ -321,293 +321,327 @@ async function syncPendingOrders() {
         fetchOrders();
     }
 }
-// --- FUNGSI FETCH DATA DARI SUPABASE ---
-async function fetchOrders() {
+// --- DATABASE LAYANAN (LOCAL) ---
+const services = [
+    { id: 0, name: "Cuci Komplit", price: 7000, unit: "kg" },
+    { id: 1, name: "Setrika Saja", price: 4000, unit: "kg" },
+    { id: 2, name: "Bed Cover", price: 0, unit: "pcs", isParent: true }, 
+    { id: 21, name: "Bed Cover Kecil", price: 15000, unit: "pcs" },              
+    { id: 22, name: "Bed Cover Sedang", price: 20000, unit: "pcs" },             
+    { id: 23, name: "Bed Cover Besar", price: 25000, unit: "pcs" },              
+    { id: 3, name: "Custom 1", price: 0, unit: "pcs", isCustom: true }, 
+    { id: 4, name: "Custom 2", price: 0, unit: "pcs", isCustom: true }, 
+    { id: 5, name: "Sprei Kasur", price: 10000, unit: "pcs" },
+    { id: 6, name: "Custom 3", price: 0, unit: "pcs", isCustom: true }  
+];
+
+// --- KONFIGURASI SUPABASE ---
+const SUPABASE_URL = 'https://qgezrmiuwkmwfglblqet.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZXpybWl1d2ttd2ZnbGJscWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDk5NzAsImV4cCI6MjA4NzE4NTk3MH0.qxd3eTWFfQC6QEl56xzvJFHcmAO7gqsx17cEaCTkkRg';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// --- KONSTANTA LOKAL STORAGE ---
+const LS_ORDERS_KEY = 'ziedan_local_orders';
+const LS_PENDING_KEY = 'ziedan_pending_orders';
+const LS_CUSTOM_KEY = 'ziedan_custom_services'; 
+
+// --- STATE MANAGEMENT ---
+let state = {
+    selectedServiceIds: [], 
+    quantities: {}, 
+    total: 0,
+    isBedCoverOpen: false 
+};
+let allOrders = [];
+let currentOrderId = null;
+let currentDetailKreditName = null; 
+
+// --- HELPER FUNGSI TANGGAL ---
+function formatTanggalLokal(isoString) {
     try {
-        const { data, error } = await supabaseClient
-            .from('orders')
-            .select('*')
-            .order('id', { ascending: false });
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString; 
         
-        if (error) {
-            console.error("Error fetching orders:", error);
-            const localOrders = getLocalOrders();
-            const pendingOrders = getPendingOrders();
-            const merged = [...pendingOrders.map(o => ({...o, _isPending: true})), ...localOrders];
-            allOrders = merged;
-            
-            if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
-            if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
-            if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        return d.toLocaleDateString('id-ID', options);
+    } catch (e) {
+        return isoString;
+    }
+}
+
+function formatTanggalSingkat(isoString) {
+    try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+    } catch (e) {
+        return '-';
+    }
+}
+
+// --- FUNGSI FORMAT RUPIAH ---
+function formatRupiah(angka) {
+    return "Rp " + angka.toLocaleString('id-ID');
+}
+
+// --- FUNGSI CUSTOM SERVICE (BARU & DINAMIS) ---
+function loadCustomService() {
+    try {
+        const raw = localStorage.getItem(LS_CUSTOM_KEY);
+        if (raw) {
+            const data = JSON.parse(raw);
+            services.forEach(srv => {
+                if (data[srv.id]) {
+                    if (srv.id === 21) srv.name = "Bed Cover Kecil";
+                    else if (srv.id === 22) srv.name = "Bed Cover Sedang";
+                    else if (srv.id === 23) srv.name = "Bed Cover Besar";
+                    else srv.name = data[srv.id].name;
+                    
+                    srv.price = data[srv.id].price;
+                    srv.unit = data[srv.id].unit;
+                }
+            });
+        }
+        
+        services.forEach(srv => updateCustomServiceUI(srv.id));
+    } catch (e) {
+        console.warn("Gagal meload custom service:", e);
+    }
+}
+
+function updateCustomServiceUI(id) {
+    const customSrv = services.find(s => s.id === id);
+    if (!customSrv) return;
+
+    const nameEl = document.getElementById(`label-srv-${id}-name`);
+    const priceEl = document.getElementById(`label-srv-${id}-price`);
+    const unitEl = document.getElementById(`label-srv-${id}-unit`);
+    const unitInputEl = document.getElementById(`label-srv-${id}-unit-input`);
+
+    if (nameEl) nameEl.innerText = customSrv.name;
+    if (priceEl) priceEl.innerText = formatRupiah(customSrv.price);
+    if (unitEl) unitEl.innerText = '/' + customSrv.unit.toLowerCase();
+    if (unitInputEl) unitInputEl.innerText = customSrv.unit.toUpperCase();
+}
+
+function openCustomServiceModal(event, id) {
+    history.pushState({ view: 'custom-service-modal' }, "", "");
+    if (event) event.stopPropagation(); 
+    
+    const customSrv = services.find(s => s.id === id);
+    if (!customSrv) return;
+
+    document.getElementById('current-custom-id').value = id;
+    
+    const standardInputs = document.getElementById('modal-standard-inputs');
+    const bedcoverInputs = document.getElementById('modal-bedcover-inputs');
+    
+    if (id === 2) {
+        if(standardInputs) standardInputs.classList.add('hidden');
+        if(bedcoverInputs) bedcoverInputs.classList.remove('hidden');
+        
+        const srv21 = services.find(s => s.id === 21);
+        const srv22 = services.find(s => s.id === 22);
+        const srv23 = services.find(s => s.id === 23);
+        
+        if (srv21) document.getElementById('input-bc-kecil').value = srv21.price;
+        if (srv22) document.getElementById('input-bc-sedang').value = srv22.price;
+        if (srv23) document.getElementById('input-bc-besar').value = srv23.price;
+    } else {
+        if(standardInputs) standardInputs.classList.remove('hidden');
+        if(bedcoverInputs) bedcoverInputs.classList.add('hidden');
+        
+        const isDefaultName = (customSrv.name.startsWith('Custom '));
+        document.getElementById('input-custom-name').value = !isDefaultName ? customSrv.name : '';
+        document.getElementById('input-custom-price').value = customSrv.price > 0 ? customSrv.price : '';
+        
+        if (customSrv.unit.toLowerCase() === 'kg') {
+            document.getElementById('unit-kg').checked = true;
+        } else {
+            document.getElementById('unit-pcs').checked = true;
+        }
+        refreshRadioUI();
+    }
+
+    const modal = document.getElementById('custom-service-modal');
+    const modalContent = document.getElementById('custom-service-modal-content');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }, 10);
+}
+
+function closeCustomServiceModal() {
+    const modal = document.getElementById('custom-service-modal');
+    const modalContent = document.getElementById('custom-service-modal-content');
+    modal.classList.add('opacity-0');
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+}
+
+function refreshRadioUI() {
+    const isKg = document.getElementById('unit-kg').checked;
+    const labelKg = document.getElementById('label-unit-kg');
+    const labelPcs = document.getElementById('label-unit-pcs');
+
+    const activeClass = ['border-brand-500', 'bg-brand-50', 'text-brand-600', 'shadow-sm', 'ring-1', 'ring-brand-500'];
+    const inactiveClass = ['border-gray-200', 'bg-gray-50', 'text-gray-700'];
+
+    if (isKg) {
+        labelKg.classList.add(...activeClass);
+        labelKg.classList.remove(...inactiveClass);
+        labelPcs.classList.add(...inactiveClass);
+        labelPcs.classList.remove(...activeClass);
+    } else {
+        labelPcs.classList.add(...activeClass);
+        labelPcs.classList.remove(...inactiveClass);
+        labelKg.classList.add(...inactiveClass);
+        labelKg.classList.remove(...activeClass);
+    }
+}
+
+function saveCustomServiceConfig() {
+    const id = parseInt(document.getElementById('current-custom-id').value);
+    
+    let storedData = {};
+    try {
+        const raw = localStorage.getItem(LS_CUSTOM_KEY);
+        if (raw) storedData = JSON.parse(raw);
+    } catch (e) {}
+
+    if (id === 2) {
+        const price21 = parseInt(document.getElementById('input-bc-kecil').value) || 0;
+        const price22 = parseInt(document.getElementById('input-bc-sedang').value) || 0;
+        const price23 = parseInt(document.getElementById('input-bc-besar').value) || 0;
+        
+        const srv21 = services.find(s => s.id === 21);
+        const srv22 = services.find(s => s.id === 22);
+        const srv23 = services.find(s => s.id === 23);
+        
+        if (srv21) { srv21.price = price21; storedData[21] = { name: "Bed Cover Kecil", price: price21, unit: 'pcs' }; }
+        if (srv22) { srv22.price = price22; storedData[22] = { name: "Bed Cover Sedang", price: price22, unit: 'pcs' }; }
+        if (srv23) { srv23.price = price23; storedData[23] = { name: "Bed Cover Besar", price: price23, unit: 'pcs' }; }
+        
+        localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify(storedData));
+        
+        updateCustomServiceUI(21);
+        updateCustomServiceUI(22);
+        updateCustomServiceUI(23);
+        hitungTotal(); 
+        
+    } else {
+        const nameVal = document.getElementById('input-custom-name').value.trim();
+        const priceVal = parseInt(document.getElementById('input-custom-price').value);
+        const isKg = document.getElementById('unit-kg').checked;
+
+        if (!nameVal) {
+            alert("Nama layanan tidak boleh kosong!");
+            return;
+        }
+        if (isNaN(priceVal) || priceVal < 0) {
+            alert("Harga layanan tidak valid!");
             return;
         }
 
-        const localData = getLocalOrders();
-        if ((!data || data.length === 0) && localData.length > 0) {
-            console.warn("Data server kosong tapi terdapat data lokal. Mencegah overwrite data.");
-            allOrders = localData; 
-        } else {
-            allOrders = data || [];
-            saveLocalOrders(allOrders); 
-        }
-        
-        if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
-        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
-        if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
-    } catch (err) {
-        console.error("Network error saat mengambil data:", err);
-        const localOrders = getLocalOrders();
-        const pendingOrders = getPendingOrders();
-        allOrders = [...pendingOrders.map(o => ({...o, _isPending: true})), ...localOrders];
-        
-        if (!document.getElementById('view-orders').classList.contains('hidden')) renderOrderList();
-        if (document.getElementById('view-kredit') && !document.getElementById('view-kredit').classList.contains('hidden')) renderKreditList();
-        if (document.getElementById('view-laporan') && !document.getElementById('view-laporan').classList.contains('hidden')) renderLaporan();
-    }
-}
+        const customSrv = services.find(s => s.id === id);
+        if (customSrv) {
+            customSrv.name = nameVal;
+            customSrv.price = priceVal;
+            customSrv.unit = isKg ? 'kg' : 'pcs';
 
-// --- FUNGSI NAVIGASI HEADER & HISTORY API (TOMBOL BACK FISIK) ---
-function toggleMenu() {
-    const menu = document.getElementById('menu-overlay');
-    const btn = document.getElementById('menu-btn');
-    if (menu && btn) {
-        menu.classList.toggle('hidden');
-        if (!menu.classList.contains('hidden')) {
-            menu.style.display = 'flex';
-        } else {
-            setTimeout(() => { menu.style.display = ''; }, 300); 
-        }
-        btn.classList.toggle('active');
-    }
-}
+            storedData[id] = {
+                name: customSrv.name,
+                price: customSrv.price,
+                unit: customSrv.unit
+            };
 
-function navTo(page) {
-    if (page === 'home') { backToHome(); } 
-    else if (page === 'orders') { switchToOrders(); renderOrderList(); } 
-    else if (page === 'kredit') { switchToKredit(); }
-    else if (page === 'laporan') { switchToLaporan(); }
-    toggleMenu(); 
-}
-
-function switchToOrders(fromHistory = false) {
-    if (!fromHistory) history.pushState({ view: 'orders' }, "", "");
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-orders').classList.remove('hidden');
-    document.getElementById('view-order-detail').classList.add('hidden'); 
-    document.getElementById('view-kredit')?.classList.add('hidden'); 
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    document.getElementById('view-laporan')?.classList.add('hidden');
-    const footer = document.getElementById('footer-total');
-    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
-    
-    renderOrderList(); 
-}
-
-function backToHome(fromHistory = false) {
-    if (!fromHistory) history.pushState({ view: 'home' }, "", "");
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-order-detail').classList.add('hidden');
-    document.getElementById('view-kredit')?.classList.add('hidden'); 
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    document.getElementById('view-laporan')?.classList.add('hidden');
-    document.getElementById('view-home').classList.remove('hidden');
-    const footer = document.getElementById('footer-total');
-    if(footer) footer.classList.remove('translate-y-full', 'opacity-0');
-}
-
-function switchToKredit(fromHistory = false) {
-    if (!fromHistory) history.pushState({ view: 'kredit' }, "", "");
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-order-detail').classList.add('hidden');
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    document.getElementById('view-laporan')?.classList.add('hidden');
-    document.getElementById('view-kredit').classList.remove('hidden');
-    const footer = document.getElementById('footer-total');
-    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
-    
-    renderKreditList(); 
-}
-
-// FITUR BARU: NAVIGASI KE LAPORAN BULANAN
-function switchToLaporan(fromHistory = false) {
-    if (!fromHistory) history.pushState({ view: 'laporan' }, "", "");
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-order-detail').classList.add('hidden');
-    document.getElementById('view-kredit')?.classList.add('hidden');
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    document.getElementById('view-laporan').classList.remove('hidden');
-    const footer = document.getElementById('footer-total');
-    if(footer) footer.classList.add('translate-y-full', 'opacity-0');
-
-    // Setup bulan default (bulan saat ini) jika kosong
-    const inputBulan = document.getElementById('input-bulan-laporan');
-    if (!inputBulan.value) {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        inputBulan.value = `${year}-${month}`;
-    }
-    
-    renderLaporan();
-}
-// REVISI: RENDER DATA LAPORAN BULANAN (REKAP TRANSAKSI + REKAP LAYANAN 3D)
-function renderLaporan() {
-    const container = document.getElementById('laporan-list');
-    const containerServices = document.getElementById('laporan-summary-services'); 
-    const qtyEl = document.getElementById('laporan-summary-qty');
-    const omsetEl = document.getElementById('laporan-summary-omset');
-    const inputBulan = document.getElementById('input-bulan-laporan').value;
-
-    if (!inputBulan) {
-        container.innerHTML = '<p class="text-center text-xs text-gray-400 py-4">Silakan pilih bulan.</p>';
-        if(containerServices) containerServices.innerHTML = '';
-        qtyEl.innerText = "0";
-        omsetEl.innerText = "Rp 0";
-        return;
-    }
-
-    const [targetYear, targetMonth] = inputBulan.split('-');
-
-    // Filter transaksi berdasarkan bulan
-    const filteredOrders = allOrders.filter(order => {
-        const d = new Date(order.date);
-        return d.getFullYear() == targetYear && String(d.getMonth() + 1).padStart(2, '0') == targetMonth;
-    });
-
-    // Urutkan berdasarkan tanggal terlama ke terbaru
-    filteredOrders.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    let totalPesanan = 0;
-    let totalOmset = 0;
-    let serviceAggregator = {}; 
-
-    if (filteredOrders.length === 0) {
-        container.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-10 opacity-50">
-                <i class="fas fa-box-open text-3xl mb-3 text-indigo-300 drop-shadow-sm"></i>
-                <p class="text-[10px] font-bold text-indigo-900 uppercase tracking-widest">Tidak ada data di bulan ini</p>
-            </div>
-        `;
-        if(containerServices) containerServices.innerHTML = '';
-        qtyEl.innerText = "0";
-        omsetEl.innerText = "Rp 0";
-        return;
-    }
-
-    const itemsHtml = filteredOrders.map((order, index) => {
-        totalOmset += order.total;
-        totalPesanan += 1;
-        
-        const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
-        
-        let serviceNames = itemsArray.map(i => {
-            let name = i.name;
-            if(name === "BC Kecil") name = "Bed Cover Kecil";
-            if(name === "BC Sedang") name = "Bed Cover Sedang";
-            if(name === "BC Besar") name = "Bed Cover Besar";
+            localStorage.setItem(LS_CUSTOM_KEY, JSON.stringify(storedData));
             
-            // --- MENGHITUNG REKAP LAYANAN ---
-            let key = `${name}_${i.unit}`;
-            if (!serviceAggregator[key]) {
-                serviceAggregator[key] = {
-                    name: name,
-                    unit: i.unit,
-                    totalQty: 0,
-                    totalRevenue: 0
-                };
+            updateCustomServiceUI(id);
+            hitungTotal(); 
+        }
+    }
+
+    closeCustomServiceModal();
+}
+
+// --- HELPER BACA & TULIS LOKAL STORAGE ---
+function getLocalOrders() {
+    try {
+        const raw = localStorage.getItem(LS_ORDERS_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveLocalOrders(orders) {
+    try {
+        localStorage.setItem(LS_ORDERS_KEY, JSON.stringify(orders));
+    } catch (e) {
+        console.warn("Gagal menyimpan ke localStorage:", e);
+    }
+}
+
+function getPendingOrders() {
+    try {
+        const raw = localStorage.getItem(LS_PENDING_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function savePendingOrders(orders) {
+    try {
+        localStorage.setItem(LS_PENDING_KEY, JSON.stringify(orders));
+    } catch (e) {
+        console.warn("Gagal menyimpan pending orders:", e);
+    }
+}
+
+// --- SINKRONISASI PENDING ORDERS KE SUPABASE ---
+async function syncPendingOrders() {
+    const pending = getPendingOrders();
+    if (pending.length === 0) return;
+
+    console.log(`Mencoba sync ${pending.length} pesanan pending ke server...`);
+    const stillPending = [];
+
+    for (const order of pending) {
+        try {
+            const orderToUpload = {
+                ...order,
+                items: typeof order.items === 'string' ? order.items : JSON.stringify(order.items)
+            };
+            
+            delete orderToUpload.id; 
+            delete orderToUpload._localId;
+            delete orderToUpload._isPending;
+
+            const { error } = await supabaseClient.from('orders').insert([orderToUpload]).select();
+            if (error) {
+                console.warn("Gagal sync pending order:", error.message);
+                stillPending.push(order);
+            } else {
+                console.log("Pending order berhasil di-sync:", order.customer);
             }
-            // Mencegah floating point issue saat menjumlahkan
-            serviceAggregator[key].totalQty += parseFloat(i.qty || 0);
-            serviceAggregator[key].totalRevenue += parseFloat((i.qty || 0) * (i.price || 0));
-            // --------------------------------
-            
-            return `${name} (${i.qty} ${i.unit.toUpperCase()})`;
-        }).join(', ');
-
-        if(!serviceNames) serviceNames = "-";
-
-        const tgl = new Date(order.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
-        
-        let paymentBadgeColor = order.payment === 'cash' ? 'bg-emerald-50 text-emerald-600 border-emerald-200 shadow-[0_2px_4px_rgba(16,185,129,0.1)]' : 'bg-rose-50 text-rose-600 border-rose-200 shadow-[0_2px_4px_rgba(244,63,94,0.1)]';
-
-        return `
-        <div class="bg-gradient-to-br from-indigo-50/40 to-blue-50/40 rounded-2xl p-3 border border-indigo-100/50 hover:bg-white transition-all mb-2.5 shadow-sm hover:shadow-[0_4px_15px_rgba(99,102,241,0.1)] group">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2.5 min-w-0 pr-2">
-                    <span class="w-6 h-6 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black shadow-inner border border-indigo-100 group-hover:scale-105 transition-transform">${index + 1}</span>
-                    <span class="text-sm font-black text-indigo-900 truncate uppercase tracking-wide leading-none">${order.customer}</span>
-                </div>
-                <span class="text-xs text-indigo-500 font-bold bg-white/80 px-2.5 py-1 rounded-md shadow-sm border border-indigo-50 flex-shrink-0 tracking-wider">${tgl}</span>
-            </div>
-            
-            <div class="flex flex-col gap-1.5 pl-8">
-                <span class="text-[10px] text-gray-500 font-bold break-words leading-tight flex items-start gap-1.5">
-                    <i class="fas fa-map-marker-alt text-indigo-300/70 mt-0.5"></i>
-                    <span class="flex-1">${order.whatsapp || '-'}</span>
-                </span>
-                <span class="text-[10px] text-gray-500 font-bold leading-tight flex items-start gap-1.5">
-                    <i class="fas fa-tag text-indigo-300/70 mt-0.5"></i>
-                    <span class="flex-1">${serviceNames}</span>
-                </span>
-                
-                <div class="flex justify-between items-end mt-2 pt-2 border-t border-indigo-100/50">
-                    <span class="text-[10px] font-black px-2 py-1 rounded-md border ${paymentBadgeColor} uppercase tracking-widest">${order.payment}</span>
-                    <span class="text-sm font-black text-indigo-600 drop-shadow-sm">${formatRupiah(order.total)}</span>
-                </div>
-            </div>
-        </div>
-        `;
-    }).join('');
-
-    container.innerHTML = itemsHtml;
-    qtyEl.innerText = totalPesanan;
-    omsetEl.innerText = formatRupiah(totalOmset);
-
-    // --- RENDER LAYANAN 3D (REVISI STRUKTUR VERTIKAL & FLOATING POINT) ---
-    if (containerServices) {
-        // Urutkan berdasarkan pendapatan terbesar
-        const aggArray = Object.values(serviceAggregator).sort((a, b) => b.totalRevenue - a.totalRevenue);
-        
-        if (aggArray.length === 0) {
-             containerServices.innerHTML = '';
-        } else {
-             const bgGradients = [
-                 'from-blue-500 to-cyan-500',
-                 'from-emerald-500 to-teal-500',
-                 'from-violet-500 to-purple-500',
-                 'from-rose-500 to-pink-500',
-                 'from-amber-500 to-orange-500',
-                 'from-indigo-500 to-blue-500'
-             ];
-
-             const htmlServices = aggArray.map((srv, idx) => {
-                 const bg = bgGradients[idx % bgGradients.length];
-                 const shadowColor = bg.includes('cyan') ? 'rgba(6,182,212,0.4)' : bg.includes('teal') ? 'rgba(20,184,166,0.4)' : bg.includes('purple') ? 'rgba(147,51,234,0.4)' : bg.includes('pink') ? 'rgba(236,72,153,0.4)' : bg.includes('orange') ? 'rgba(245,158,11,0.4)' : 'rgba(99,102,241,0.4)';
-                 
-                 // FIX: Menghilangkan error floating point seperti 242.100000 jadi 242.1
-                 const safeQty = Number(parseFloat(srv.totalQty).toFixed(2));
-                 
-                 // FIX: Layout baru yang tertata rapi dari atas ke bawah
-                 return `
-                 <div class="relative overflow-hidden rounded-[1.25rem] p-3.5 bg-gradient-to-br ${bg} text-white shadow-[0_8px_15px_${shadowColor}] border border-white/30 transform hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between">
-                     <div class="absolute -right-6 -top-6 w-20 h-20 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
-                     <div class="absolute -left-4 -bottom-4 w-16 h-16 bg-black/10 rounded-full blur-md pointer-events-none"></div>
-                     
-                     <div class="relative z-10 text-center mb-3 mt-1">
-                        <h4 class="text-[11px] font-black uppercase tracking-wider leading-tight drop-shadow-md truncate mb-2 text-white/90">${srv.name}</h4>
-                        <span class="text-2xl font-black drop-shadow-md leading-none block">${safeQty}<span class="text-[9px] ml-0.5 font-bold uppercase opacity-80">${srv.unit}</span></span>
-                     </div>
-                     <div class="relative z-10 w-full bg-black/25 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 shadow-[inset_0_2px_4px_rgba(255,255,255,0.1)] text-center mt-auto">
-                        <span class="text-sm font-black drop-shadow-sm">${formatRupiah(srv.totalRevenue)}</span>
-                     </div>
-                 </div>
-                 `;
-             }).join('');
-
-             containerServices.innerHTML = htmlServices;
+        } catch (e) {
+            stillPending.push(order);
         }
+    }
+
+    savePendingOrders(stillPending);
+
+    if (stillPending.length < pending.length) {
+        fetchOrders();
     }
 }
 // --- FUNGSI UTAMA & INISIALISASI ---
@@ -1379,7 +1413,19 @@ function renderKreditList() {
         groupedKredit[keyName].transactionCount += 1;
     });
 
-    const groupedArray = Object.values(groupedKredit);
+    // REVISI: Filter array agar hanya menampilkan data kredit yang Sisa Tagihannya > 0
+    const groupedArray = Object.values(groupedKredit).filter(data => (data.totalAmount - data.paidAmount) > 0);
+
+    if (groupedArray.length === 0) {
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-10 opacity-40">
+                <i class="fas fa-check-circle text-4xl mb-3 text-green-400"></i>
+                <p class="text-xs font-bold text-green-900">Semua kredit sudah lunas</p>
+            </div>
+        `;
+        return;
+    }
+
     container.innerHTML = groupedArray.map((data, index) => {
         const sisa = data.totalAmount - data.paidAmount;
         const nameStr = data.displayName.replace(/'/g, "\\'"); 
@@ -1416,6 +1462,7 @@ function renderKreditList() {
         `;
     }).join('');
 }
+
 function openKreditDetail(customerName, isRefresh = false) {
     if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", "");
     
@@ -1591,10 +1638,19 @@ function cetakRekapKredit() {
     document.getElementById('kt-date').innerText = formatTanggalLokal(new Date().toISOString());
     
     let itemsHTML = '';
+    let notaTotal = 0;
+    let notaPaid = 0;
+
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
-        const tagLunas = isLunas ? ` <span class="text-[10px] bg-emerald-950/50 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/30 font-black tracking-widest ml-1 shadow-[0_0_8px_rgba(16,185,129,0.1)]">LUNAS</span>` : '';
+        
+        // REVISI: Jika transaksi sudah lunas, jangan dimasukkan ke cetakan nota
+        if (isLunas) return;
+
+        // Hitung total dan dibayar KHUSUS untuk transaksi yang BELUM lunas di nota
+        notaTotal += order.total;
+        notaPaid += (order.kredit_paid || 0);
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
@@ -1606,19 +1662,21 @@ function cetakRekapKredit() {
             itemsHTML += `
             <div class="flex justify-between items-center text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3.5">
                 <div class="flex flex-col">
-                    <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span>${tagLunas}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span></span>
                     <span class="text-xs text-slate-500 font-mono mt-1">${formatTanggalSingkat(order.date)}</span>
                 </div>
-                <span class="font-mono font-black ${isLunas ? 'text-slate-600 line-through' : 'text-cyan-300'} whitespace-nowrap text-base">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="font-mono font-black text-cyan-300 whitespace-nowrap text-base">${formatRupiah(item.qty * (item.price || 0))}</span>
             </div>
             `;
         });
     });
 
-    document.getElementById('kt-items').innerHTML = itemsHTML;
-    document.getElementById('kt-total').innerText = formatRupiah(window.currentTotalKredit);
-    document.getElementById('kt-paid').innerText = formatRupiah(window.currentPaidKredit);
-    document.getElementById('kt-sisa').innerText = formatRupiah(window.currentSisaKredit);
+    const notaSisa = notaTotal - notaPaid;
+
+    document.getElementById('kt-items').innerHTML = itemsHTML || '<div class="text-sm text-slate-400 py-2">Tidak ada transaksi tertunggak.</div>';
+    document.getElementById('kt-total').innerText = formatRupiah(notaTotal);
+    document.getElementById('kt-paid').innerText = formatRupiah(notaPaid);
+    document.getElementById('kt-sisa').innerText = formatRupiah(notaSisa);
 
     const modal = document.getElementById('kredit-ticket-modal');
     const modalContent = document.getElementById('kredit-ticket-modal-content');
