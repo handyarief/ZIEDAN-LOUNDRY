@@ -232,6 +232,7 @@ function saveCustomServiceConfig() {
         if (customSrv) {
             customSrv.name = nameVal;
             customSrv.price = priceVal;
+            customSrv.unit = isKg ? 'pcs' : 'pcs'; // Force standard for logic if needed, but keeping dynamic
             customSrv.unit = isKg ? 'kg' : 'pcs';
 
             storedData[id] = {
@@ -849,7 +850,6 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
-
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -1234,7 +1234,6 @@ function downloadETicket() {
         });
     }, 150);
 }
-
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1313,7 +1312,7 @@ function renderKreditList() {
     }).join('');
 }
 
-// --- MODIFIKASI INTI: PERUBAHAN LOGIKA KOTAK MERAH (TAHAP 1) ---
+// --- MODIFIKASI INTI: PERUBAHAN LOGIKA KOTAK MERAH (TAHAP 2 - IMPLEMENTASI FIX) ---
 function openKreditDetail(customerName, isRefresh = false) {
     if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", "");
     
@@ -1332,6 +1331,7 @@ function openKreditDetail(customerName, isRefresh = false) {
     let itemsHTML = '';
     let totalKreditAll = 0;
     let totalPaidAll = 0;
+    let totalSisaCicilan = 0; // Menampung jumlah utang dari pesanan yang sudah pernah dicicil
     let counter = 1;
 
     customerOrders.forEach(order => {
@@ -1340,8 +1340,16 @@ function openKreditDetail(customerName, isRefresh = false) {
 
         if (isLunas) return; 
 
+        // Akumulasi total keseluruhan (baik murni maupun sudah dicicil)
         totalKreditAll += order.total;
         totalPaidAll += (order.kredit_paid || 0);
+        
+        // RULES: Jika transaksi sudah pernah dicicil (kredit_paid > 0), hilangkan dari list
+        // dan tambahkan sisa tagihannya ke totalSisaCicilan (untuk dimunculkan di kotak Sisa Tagihan)
+        if ((order.kredit_paid || 0) > 0) {
+            totalSisaCicilan += sisaOrder;
+            return; // Skip rendering ke dalam list UI
+        }
         
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
@@ -1372,35 +1380,30 @@ function openKreditDetail(customerName, isRefresh = false) {
         });
     });
 
-    // Menghitung Sisa Kredit Aktual (Untuk Label "TOTAL TAGIHAN" baru)
+    // TOTAL TAGIHAN (Teks Besar) = Sisa dari keseluruhan utang
     const sisaKredit = totalKreditAll - totalPaidAll;
     
-    // Tarik Log Pembayaran Terakhir
+    // Ambil pembayaran terakhir dari logs
     const allLogs = getPaymentLogs();
     const customerLogs = allLogs.filter(log => log.customer === targetName);
     
-    let sisaTagihanTerakhir = 0;
     let pembayaranTerakhir = 0;
-    
     if(customerLogs.length > 0) {
-        // Karena array di-unshift, index 0 adalah riwayat terbaru
-        sisaTagihanTerakhir = customerLogs[0].sisaTagihanSetelahBayar;
         pembayaranTerakhir = customerLogs[0].paidAmount;
     }
     
-    document.getElementById('kredit-detail-items').innerHTML = itemsHTML;
+    document.getElementById('kredit-detail-items').innerHTML = itemsHTML || '<div class="text-[10px] text-gray-400 py-3 text-center font-bold uppercase">Semua transaksi yang belum lunas merupakan tagihan sisa cicilan.</div>';
     
-    // PEMETAAN ULANG NILAI KE DOM:
-    // 1. Teks Terbesar: "TOTAL TAGIHAN"
+    // PEMETAAN DOM SESUAI PERMINTAAN FIX LOGIKA
+    // 1. Teks Terbesar: Total Keseluruhan Sisa Hutang
     document.getElementById('kredit-detail-sisa').innerText = formatRupiah(sisaKredit);
     
-    // 2. Kotak Bawah Kiri: "SISA TAGIHAN" (Sisa pada saat pembayaran terakhir)
-    document.getElementById('kredit-detail-total').innerText = formatRupiah(sisaTagihanTerakhir);
+    // 2. Kotak Bawah Kiri (SISA TAGIHAN): Sisa utang dari transaksi yang tidak murni (sudah dicicil)
+    document.getElementById('kredit-detail-total').innerText = formatRupiah(totalSisaCicilan);
     
-    // 3. Kotak Bawah Kanan: "PEMBAYARAN TERAKHIR" (Uang yang dibayar terakhir kali)
+    // 3. Kotak Bawah Kanan (PEMBAYARAN TERAKHIR): Nominal uang yang dibayar pelanggan terakhir kali
     document.getElementById('kredit-detail-paid').innerText = formatRupiah(pembayaranTerakhir);
     
-    // Window global variables tetap menggunakan logika lama untuk komputasi back-end
     window.currentSisaKredit = sisaKredit;
     window.currentTotalKredit = totalKreditAll;
     window.currentPaidKredit = totalPaidAll;
@@ -1421,6 +1424,7 @@ function closeKreditDetail(fromHistory = false) {
     
     if (!fromHistory) history.back(); 
 }
+
 function openModalBayarKredit() {
     document.getElementById('kredit-pay-sisa').innerText = formatRupiah(window.currentSisaKredit || 0);
     document.getElementById('input-kredit-pay').value = '';
@@ -1508,7 +1512,7 @@ async function prosesBayarKredit() {
         customer: currentDetailKreditName,
         date: new Date().toISOString(),
         paidAmount: inputVal,
-        totalTagihanSaatItu: window.currentSisaKredit, // Perubahan: disesuaikan agar log mencatat sisa kredit lama
+        totalTagihanSaatItu: window.currentSisaKredit, 
         sisaTagihanSetelahBayar: window.currentSisaKredit - inputVal
     });
     savePaymentLog(logs);
@@ -1535,8 +1539,12 @@ function cetakRekapKredit() {
         
         if (isLunas) return; 
 
+        // Akumulasi total keuangan tetap dilakukan
         notaTotal += order.total;
         notaPaid += (order.kredit_paid || 0);
+
+        // Jangan render item ini ke list cetak jika sudah pernah dicicil (kredit_paid > 0)
+        if ((order.kredit_paid || 0) > 0) return;
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
@@ -1559,7 +1567,7 @@ function cetakRekapKredit() {
 
     const notaSisa = notaTotal - notaPaid;
 
-    document.getElementById('kt-items').innerHTML = itemsHTML || '<div class="text-sm text-slate-400 py-2">Tidak ada transaksi tertunggak.</div>';
+    document.getElementById('kt-items').innerHTML = itemsHTML || '<div class="text-sm text-slate-400 py-2">Semua transaksi yang belum lunas merupakan sisa cicilan.</div>';
     document.getElementById('kt-total').innerText = formatRupiah(notaTotal);
     document.getElementById('kt-paid').innerText = formatRupiah(notaPaid);
     document.getElementById('kt-sisa').innerText = formatRupiah(notaSisa);
@@ -1663,7 +1671,6 @@ function downloadKreditTicket() {
     }, 150);
 }
 
-// [PERBAIKAN 2]: FUNGSI BARU UNTUK MODAL RIWAYAT PEMBAYARAN KREDIT
 function openKreditHistoryModal() {
     if (!currentDetailKreditName) return;
 
