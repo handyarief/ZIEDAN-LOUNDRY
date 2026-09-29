@@ -21,6 +21,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const LS_ORDERS_KEY = 'ziedan_local_orders';
 const LS_PENDING_KEY = 'ziedan_pending_orders';
 const LS_CUSTOM_KEY = 'ziedan_custom_services'; 
+const LS_PAYMENT_LOG = 'ziedan_payment_log'; // BARU: Untuk catat riwayat waktu bayar
 
 // --- STATE MANAGEMENT ---
 let state = {
@@ -281,6 +282,24 @@ function savePendingOrders(orders) {
         localStorage.setItem(LS_PENDING_KEY, JSON.stringify(orders));
     } catch (e) {
         console.warn("Gagal menyimpan pending orders:", e);
+    }
+}
+
+// BARU: Helper untuk log pembayaran
+function getPaymentLogs() {
+    try {
+        const raw = localStorage.getItem(LS_PAYMENT_LOG);
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function savePaymentLog(logs) {
+    try {
+        localStorage.setItem(LS_PAYMENT_LOG, JSON.stringify(logs));
+    } catch (e) {
+        console.warn("Gagal menyimpan payment log:", e);
     }
 }
 
@@ -781,7 +800,6 @@ async function hapusPesanan(id, event) {
         }
     }
 }
-
 async function hapusSemuaKreditPelanggan(customerName, event) {
     if (event) event.stopPropagation();
 
@@ -1212,6 +1230,7 @@ function downloadETicket() {
         });
     }, 150);
 }
+
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1369,7 +1388,6 @@ function closeKreditDetail(fromHistory = false) {
     
     if (!fromHistory) history.back(); 
 }
-
 function openModalBayarKredit() {
     document.getElementById('kredit-pay-sisa').innerText = formatRupiah(window.currentSisaKredit || 0);
     document.getElementById('input-kredit-pay').value = '';
@@ -1418,6 +1436,7 @@ async function prosesBayarKredit() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>MEMPROSES...</span>';
     btn.disabled = true;
 
+    // Distribusi pembayaran secara FIFO ke pesanan lama
     let customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
     customerOrders.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -1449,6 +1468,18 @@ async function prosesBayarKredit() {
         }
     }
 
+    // --- FITUR BARU: MENCATAT LOG RIWAYAT PEMBAYARAN ---
+    const logs = getPaymentLogs();
+    logs.unshift({
+        id: 'log_' + Date.now(),
+        customer: currentDetailKreditName,
+        date: new Date().toISOString(),
+        paidAmount: inputVal,
+        totalTagihanSaatItu: window.currentTotalKredit,
+        sisaTagihanSetelahBayar: window.currentSisaKredit - inputVal
+    });
+    savePaymentLog(logs);
+
     btn.innerHTML = originalHtml;
     btn.disabled = false;
     closeModalBayarKredit();
@@ -1466,14 +1497,12 @@ function cetakRekapKredit() {
     let notaPaid = 0;
 
     customerOrders.forEach(order => {
-        // [PERBAIKAN]: Hitung total keseluruhan TERLEBIH DAHULU agar sinkron dengan rincian total data kredit
         notaTotal += order.total;
         notaPaid += (order.kredit_paid || 0);
 
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
         
-        // Lewati merender item jika sudah lunas di struk/nota, namun nominalnya tetap masuk kalkulasi total
         if (isLunas) return;
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
@@ -1601,13 +1630,13 @@ function downloadKreditTicket() {
     }, 150);
 }
 
-// [PERBAIKAN 2]: FUNGSI BARU UNTUK MODAL RIWAYAT PEMBAYARAN KREDIT FULL 3D
+// [PERBAIKAN 2]: FUNGSI BARU UNTUK MODAL RIWAYAT PEMBAYARAN KREDIT
 function openKreditHistoryModal() {
     if (!currentDetailKreditName) return;
 
-    const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
-    // Sortir dari yang terbaru ke terlama
-    customerOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Ambil data log pembayaran yang tersimpan di localStorage
+    const allLogs = getPaymentLogs();
+    const customerLogs = allLogs.filter(log => log.customer === currentDetailKreditName);
 
     const listContainer = document.getElementById('kredit-history-list');
     document.getElementById('kh-customer-name').innerText = currentDetailKreditName;
@@ -1615,50 +1644,31 @@ function openKreditHistoryModal() {
 
     let htmlContent = '';
 
-    if(customerOrders.length === 0) {
-        htmlContent = `<div class="text-center text-gray-400 text-xs py-8 font-bold">Belum ada riwayat transaksi.</div>`;
+    if(customerLogs.length === 0) {
+        // Jika pelanggan memiliki tagihan lunas lama namun belum ada log
+        htmlContent = `<div class="text-center text-gray-400 text-xs py-8 font-bold">Belum ada riwayat pembayaran terbaru yang tercatat.</div>`;
     } else {
         htmlContent = '<div class="space-y-4">';
-        customerOrders.forEach(order => {
-            const paid = order.kredit_paid || 0;
-            const sisa = order.total - paid;
-            const isLunas = sisa <= 0;
-            
-            const badgeClass = isLunas ? 'bg-green-100 text-green-600 border-green-200' : 'bg-red-100 text-red-600 border-red-200';
-            const badgeText = isLunas ? 'LUNAS' : 'BELUM LUNAS';
-            
-            // Extract items summary
-            const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
-            const summaryService = itemsArr.map(i => {
-                let n = i.name;
-                if(n === "BC Kecil") n = "Bed Cover Kecil";
-                if(n === "BC Sedang") n = "Bed Cover Sedang";
-                if(n === "BC Besar") n = "Bed Cover Besar";
-                return `${n} (${i.qty}${i.unit.toUpperCase()})`;
-            }).join(', ');
-
+        customerLogs.forEach(log => {
             htmlContent += `
             <div class="bg-white rounded-2xl p-4 shadow-[0_8px_20px_rgba(0,0,0,0.04)] border border-gray-100 relative overflow-hidden group">
-                <div class="absolute left-0 top-0 w-1.5 h-full ${isLunas ? 'bg-green-400' : 'bg-red-400'}"></div>
+                <div class="absolute left-0 top-0 w-1.5 h-full bg-green-400"></div>
                 <div class="flex justify-between items-start mb-2 pl-2">
-                    <div class="flex flex-col max-w-[70%]">
-                        <span class="text-xs font-bold text-gray-500">${formatTanggalLokal(order.date)}</span>
-                        <span class="text-[10px] text-gray-400 mt-1 truncate font-medium"><i class="fas fa-box-open mr-1 text-gray-300"></i>${summaryService}</span>
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-gray-500">${formatTanggalLokal(log.date)}</span>
+                        <span class="text-[10px] text-gray-400 mt-1 font-medium"><i class="fas fa-check-circle mr-1 text-green-400"></i>Pembayaran Sukses</span>
                     </div>
-                    <span class="text-[9px] font-extrabold px-2 py-1 rounded-md border uppercase shadow-sm ${badgeClass}">${badgeText}</span>
+                    <span class="text-[11px] font-extrabold text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100 shadow-sm">+ ${formatRupiah(log.paidAmount)}</span>
                 </div>
-                <div class="bg-gray-50/80 rounded-xl p-3 border border-gray-100 mt-3 grid grid-cols-3 gap-2 divide-x divide-gray-200 shadow-inner">
-                    <div class="flex flex-col items-center justify-center">
-                        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tagihan</span>
-                        <span class="text-[11px] font-black text-brand-900">${formatRupiah(order.total)}</span>
+                <div class="bg-gray-50/80 rounded-xl p-3 border border-gray-100 mt-3 flex justify-between items-center shadow-inner">
+                    <div class="flex flex-col">
+                        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total Saat Itu</span>
+                        <span class="text-xs font-bold text-brand-900">${formatRupiah(log.totalTagihanSaatItu)}</span>
                     </div>
-                    <div class="flex flex-col items-center justify-center">
-                        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Dibayar</span>
-                        <span class="text-[11px] font-black text-green-600">${formatRupiah(paid)}</span>
-                    </div>
-                    <div class="flex flex-col items-center justify-center">
-                        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mb-1">Sisa</span>
-                        <span class="text-[11px] font-black ${isLunas ? 'text-green-500' : 'text-red-500'}">${formatRupiah(sisa)}</span>
+                    <i class="fas fa-arrow-right text-gray-300 text-[10px]"></i>
+                    <div class="flex flex-col text-right">
+                        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sisa Setelah Bayar</span>
+                        <span class="text-xs font-bold text-red-500">${formatRupiah(log.sisaTagihanSetelahBayar)}</span>
                     </div>
                 </div>
             </div>
