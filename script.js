@@ -334,7 +334,6 @@ async function fetchOrders() {
         allOrders = getLocalOrders();
     }
 }
-
 // --- SINKRONISASI PENDING ORDERS KE SUPABASE ---
 async function syncPendingOrders() {
     const pending = getPendingOrders();
@@ -923,7 +922,6 @@ function renderOrderList() {
         `;
     }).join('');
 }
-
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
     history.pushState({ view: 'order-detail' }, "", "");
@@ -1234,7 +1232,6 @@ function downloadETicket() {
         });
     }, 150);
 }
-
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1252,6 +1249,9 @@ function renderKreditList() {
 
     const groupedKredit = {};
     kreditOrders.forEach(order => {
+        const sisa = order.total - (order.kredit_paid || 0);
+        if (sisa <= 0) return; // PERBAIKAN: Abaikan pesanan yang sudah lunas dari akumulasi total
+
         const keyName = order.customer.trim().toUpperCase(); 
         if (!groupedKredit[keyName]) {
             groupedKredit[keyName] = { displayName: order.customer, totalAmount: 0, paidAmount: 0, transactionCount: 0 };
@@ -1261,7 +1261,7 @@ function renderKreditList() {
         groupedKredit[keyName].transactionCount += 1;
     });
 
-    const groupedArray = Object.values(groupedKredit).filter(data => (data.totalAmount - data.paidAmount) > 0);
+    const groupedArray = Object.values(groupedKredit); // Filter sudah dilakukan di atas
 
     if (groupedArray.length === 0) {
         container.innerHTML = `
@@ -1331,14 +1331,14 @@ function openKreditDetail(customerName, isRefresh = false) {
     let counter = 1;
 
     customerOrders.forEach(order => {
+        const sisaOrder = order.total - (order.kredit_paid || 0);
+        const isLunas = sisaOrder <= 0;
+
+        if (isLunas) return; // PERBAIKAN: Jangan tampilkan dan jangan jumlahkan pesanan yang sudah lunas
+
         totalKreditAll += order.total;
         totalPaidAll += (order.kredit_paid || 0);
         
-        const sisaOrder = order.total - (order.kredit_paid || 0);
-        
-        const isLunas = sisaOrder <= 0;
-        const statusLunasHtml = isLunas ? `<span class="text-[9px] font-bold bg-green-100 text-green-600 px-1.5 py-0.5 rounded uppercase leading-none shadow-sm">LUNAS</span>` : '';
-
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         const idAttr = typeof order.id === 'string' ? `'${order.id}'` : order.id;
 
@@ -1354,12 +1354,11 @@ function openKreditDetail(customerName, isRefresh = false) {
                 <div class="flex flex-col min-w-0 pr-1">
                     <div class="flex items-start gap-1.5 flex-wrap">
                         <span class="text-xs font-bold text-brand-900 leading-snug break-words">${itemName}</span>
-                        ${statusLunasHtml}
                     </div>
                 </div>
                 <span class="text-[10px] font-extrabold bg-brand-50 text-brand-900 px-1 py-1 rounded border border-brand-100 text-center whitespace-nowrap">${item.qty}${item.unit.toUpperCase()}</span>
                 <span class="text-[10px] text-gray-500 font-medium text-center leading-tight">${formatTanggalSingkat(order.date)}</span>
-                <span class="text-[11px] font-extrabold ${isLunas ? 'text-green-500' : 'text-red-500'} text-right">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="text-[11px] font-extrabold text-red-500 text-right">${formatRupiah(item.qty * (item.price || 0))}</span>
                 
                 <button onclick="hapusPesanan(${idAttr}, event)" class="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all ml-auto focus:outline-none" title="Hapus Transaksi">
                     <i class="fas fa-times text-xs pointer-events-none"></i>
@@ -1382,6 +1381,10 @@ function openKreditDetail(customerName, isRefresh = false) {
     
     document.getElementById('view-kredit').classList.add('hidden');
     document.getElementById('view-kredit-detail').classList.remove('hidden');
+
+    if (sisaKredit <= 0) {
+        closeKreditDetail(true); // Jika kebetulan tertutup semua, auto kembali
+    }
 }
 
 function closeKreditDetail(fromHistory = false) {
@@ -1501,13 +1504,13 @@ function cetakRekapKredit() {
     let notaPaid = 0;
 
     customerOrders.forEach(order => {
-        notaTotal += order.total;
-        notaPaid += (order.kredit_paid || 0);
-
         const sisaOrder = order.total - (order.kredit_paid || 0);
         const isLunas = sisaOrder <= 0;
         
-        if (isLunas) return;
+        if (isLunas) return; // PERBAIKAN: Lunas tidak dimasukkan ke cetak nota
+
+        notaTotal += order.total;
+        notaPaid += (order.kredit_paid || 0);
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
