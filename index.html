@@ -415,12 +415,10 @@
                 <h2 id="kredit-detail-title" class="text-lg font-extrabold text-brand-900 truncate">Rincian Kredit</h2>
             </div>
 
-            <!-- MODIFIKASI: Menambahkan onclick untuk memunculkan Modal Riwayat 3D -->
             <div onclick="openKreditHistoryModal()" class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-5 shadow-md border border-red-400 mb-6 text-white relative overflow-hidden group cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all active:scale-[0.98]">
                 <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10 pointer-events-none group-hover:scale-110 transition-transform duration-500"></div>
                 <div class="absolute bottom-0 left-0 w-24 h-24 bg-black opacity-5 rounded-full -ml-8 -mb-8 pointer-events-none group-hover:scale-110 transition-transform duration-500"></div>
                 
-                <!-- Indikator bisa diklik -->
                 <div class="absolute top-4 right-4 bg-white/20 backdrop-blur-md w-8 h-8 rounded-full flex items-center justify-center border border-white/30 shadow-sm group-hover:bg-white/30 transition-colors">
                     <i class="fas fa-search-dollar text-white text-xs"></i>
                 </div>
@@ -592,7 +590,6 @@
         <div class="h-4"></div>
     </main>
 
-    <!-- FITUR BARU: MODAL RIWAYAT PEMBAYARAN KREDIT FULL 3D -->
     <div id="kredit-history-modal" class="fixed inset-0 z-[85] hidden flex-col items-center justify-end sm:justify-center p-0 sm:p-4 bg-brand-900/60 backdrop-blur-md transition-opacity duration-300 opacity-0 print:hidden">
         <div class="bg-gradient-to-br from-white to-gray-50 rounded-t-[2rem] sm:rounded-3xl w-full max-w-md overflow-hidden flex flex-col shadow-2xl transform translate-y-full sm:translate-y-0 sm:scale-95 transition-transform duration-300 max-h-[85vh] border border-white/50" id="kredit-history-modal-content">
             <div class="flex justify-between items-center p-5 border-b border-gray-100/50 backdrop-blur-xl bg-white/80 shrink-0 sticky top-0 z-20">
@@ -606,7 +603,6 @@
             </div>
             
             <div class="overflow-y-auto p-4 relative w-full flex-1" id="kredit-history-list">
-                <!-- Rincian akan diisi oleh JS -->
             </div>
             
             <div class="p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 shrink-0 sticky bottom-0 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] flex justify-between items-center">
@@ -616,7 +612,6 @@
         </div>
     </div>
 
-    <!-- Modals -->
     <div id="kredit-pay-modal" class="fixed inset-0 z-[75] hidden flex-col items-center justify-center p-4 bg-brand-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0 print:hidden">
         <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl transform scale-95 transition-transform duration-300" id="kredit-pay-modal-content">
             <div class="flex justify-between items-center p-4 border-b border-brand-100 bg-gradient-to-r from-green-50 to-emerald-50 shrink-0">
@@ -703,16 +698,16 @@
                     <div class="flex flex-col gap-2 bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50 shadow-inner mb-4 backdrop-blur-md relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-cyan-400 to-blue-600"></div>
                         <div class="flex justify-between items-center gap-4">
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider flex-1">Total Tagihan</span>
+                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider flex-1">Tagihan</span>
                             <span id="kt-total" class="text-sm font-mono font-bold text-slate-300 whitespace-nowrap shrink-0">...</span>
                         </div>
                         <div class="flex justify-between items-center gap-4">
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider flex-1">Sudah Dibayar</span>
+                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider flex-1">Sisa Tagihan</span>
                             <span id="kt-paid" class="text-sm font-mono font-bold text-slate-300 whitespace-nowrap shrink-0">...</span>
                         </div>
                         <div class="w-full border-b border-dashed border-slate-600/50 my-1.5"></div>
                         <div class="flex justify-between items-center gap-4">
-                            <span class="text-xs text-cyan-400 font-black uppercase tracking-widest flex-1">Sisa Tagihan</span>
+                            <span class="text-xs text-cyan-400 font-black uppercase tracking-widest flex-1">Total Tagihan</span>
                             <span id="kt-sisa" class="text-2xl font-mono font-black text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] whitespace-nowrap shrink-0">...</span>
                         </div>
                     </div>

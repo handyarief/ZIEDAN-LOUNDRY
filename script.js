@@ -21,7 +21,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const LS_ORDERS_KEY = 'ziedan_local_orders';
 const LS_PENDING_KEY = 'ziedan_pending_orders';
 const LS_CUSTOM_KEY = 'ziedan_custom_services'; 
-const LS_PAYMENT_LOG = 'ziedan_payment_log'; // BARU: Untuk catat riwayat waktu bayar
+const LS_PAYMENT_LOG = 'ziedan_payment_log';
 
 // --- STATE MANAGEMENT ---
 let state = {
@@ -232,7 +232,6 @@ function saveCustomServiceConfig() {
         if (customSrv) {
             customSrv.name = nameVal;
             customSrv.price = priceVal;
-            customSrv.unit = isKg ? 'pcs' : 'pcs'; // Force standard for logic if needed, but keeping dynamic
             customSrv.unit = isKg ? 'kg' : 'pcs';
 
             storedData[id] = {
@@ -250,7 +249,6 @@ function saveCustomServiceConfig() {
 
     closeCustomServiceModal();
 }
-
 // --- HELPER BACA & TULIS LOKAL STORAGE ---
 function getLocalOrders() {
     try {
@@ -286,7 +284,6 @@ function savePendingOrders(orders) {
     }
 }
 
-// BARU: Helper untuk log pembayaran
 function getPaymentLogs() {
     try {
         const raw = localStorage.getItem(LS_PAYMENT_LOG);
@@ -304,7 +301,7 @@ function savePaymentLog(logs) {
     }
 }
 
-// --- FUNGSI FETCH DARI SUPABASE (BARU) ---
+// --- FUNGSI FETCH DARI SUPABASE ---
 async function fetchOrders() {
     try {
         const { data, error } = await supabaseClient
@@ -314,7 +311,6 @@ async function fetchOrders() {
             
         if (error) {
             console.error("Fetch orders error:", error);
-            // Fallback ke data lokal jika gagal
             allOrders = getLocalOrders();
             renderOrderList();
             return;
@@ -335,6 +331,7 @@ async function fetchOrders() {
         allOrders = getLocalOrders();
     }
 }
+
 // --- SINKRONISASI PENDING ORDERS KE SUPABASE ---
 async function syncPendingOrders() {
     const pending = getPendingOrders();
@@ -372,7 +369,8 @@ async function syncPendingOrders() {
         fetchOrders();
     }
 }
-// --- FUNGSI MENU & NAVIGASI UI (INJEKSI PERBAIKAN) ---
+
+// --- FUNGSI MENU & NAVIGASI UI ---
 function toggleMenu() {
     const menuBtn = document.getElementById('menu-btn');
     const menuOverlay = document.getElementById('menu-overlay');
@@ -850,6 +848,7 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
         }
     }
 }
+
 // --- RENDER ORDER LIST ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
@@ -1234,6 +1233,7 @@ function downloadETicket() {
         });
     }, 150);
 }
+
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
@@ -1312,7 +1312,6 @@ function renderKreditList() {
     }).join('');
 }
 
-// --- MODIFIKASI INTI: PERUBAHAN LOGIKA KOTAK MERAH (TAHAP 2 - IMPLEMENTASI FIX) ---
 function openKreditDetail(customerName, isRefresh = false) {
     if (!isRefresh) history.pushState({ view: 'kredit-detail' }, "", "");
     
@@ -1331,7 +1330,7 @@ function openKreditDetail(customerName, isRefresh = false) {
     let itemsHTML = '';
     let totalKreditAll = 0;
     let totalPaidAll = 0;
-    let totalSisaCicilan = 0; // Menampung jumlah utang dari pesanan yang sudah pernah dicicil
+    let totalSisaCicilan = 0; 
     let counter = 1;
 
     customerOrders.forEach(order => {
@@ -1340,15 +1339,12 @@ function openKreditDetail(customerName, isRefresh = false) {
 
         if (isLunas) return; 
 
-        // Akumulasi total keseluruhan (baik murni maupun sudah dicicil)
         totalKreditAll += order.total;
         totalPaidAll += (order.kredit_paid || 0);
         
-        // RULES: Jika transaksi sudah pernah dicicil (kredit_paid > 0), hilangkan dari list
-        // dan tambahkan sisa tagihannya ke totalSisaCicilan (untuk dimunculkan di kotak Sisa Tagihan)
         if ((order.kredit_paid || 0) > 0) {
             totalSisaCicilan += sisaOrder;
-            return; // Skip rendering ke dalam list UI
+            return; 
         }
         
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
@@ -1380,10 +1376,8 @@ function openKreditDetail(customerName, isRefresh = false) {
         });
     });
 
-    // TOTAL TAGIHAN (Teks Besar) = Sisa dari keseluruhan utang
     const sisaKredit = totalKreditAll - totalPaidAll;
     
-    // Ambil pembayaran terakhir dari logs
     const allLogs = getPaymentLogs();
     const customerLogs = allLogs.filter(log => log.customer === targetName);
     
@@ -1394,14 +1388,8 @@ function openKreditDetail(customerName, isRefresh = false) {
     
     document.getElementById('kredit-detail-items').innerHTML = itemsHTML || '<div class="text-[10px] text-gray-400 py-3 text-center font-bold uppercase">Semua transaksi yang belum lunas merupakan tagihan sisa cicilan.</div>';
     
-    // PEMETAAN DOM SESUAI PERMINTAAN FIX LOGIKA
-    // 1. Teks Terbesar: Total Keseluruhan Sisa Hutang
     document.getElementById('kredit-detail-sisa').innerText = formatRupiah(sisaKredit);
-    
-    // 2. Kotak Bawah Kiri (SISA TAGIHAN): Sisa utang dari transaksi yang tidak murni (sudah dicicil)
     document.getElementById('kredit-detail-total').innerText = formatRupiah(totalSisaCicilan);
-    
-    // 3. Kotak Bawah Kanan (PEMBAYARAN TERAKHIR): Nominal uang yang dibayar pelanggan terakhir kali
     document.getElementById('kredit-detail-paid').innerText = formatRupiah(pembayaranTerakhir);
     
     window.currentSisaKredit = sisaKredit;
@@ -1473,7 +1461,6 @@ async function prosesBayarKredit() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>MEMPROSES...</span>';
     btn.disabled = true;
 
-    // Distribusi pembayaran secara FIFO ke pesanan lama
     let customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
     customerOrders.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -1505,7 +1492,6 @@ async function prosesBayarKredit() {
         }
     }
 
-    // --- FITUR BARU: MENCATAT LOG RIWAYAT PEMBAYARAN ---
     const logs = getPaymentLogs();
     logs.unshift({
         id: 'log_' + Date.now(),
@@ -1522,7 +1508,6 @@ async function prosesBayarKredit() {
     closeModalBayarKredit();
     openKreditDetail(currentDetailKreditName, true); 
 }
-
 function cetakRekapKredit() {
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
     
@@ -1530,8 +1515,10 @@ function cetakRekapKredit() {
     document.getElementById('kt-date').innerText = formatTanggalLokal(new Date().toISOString());
     
     let itemsHTML = '';
-    let notaTotal = 0;
-    let notaPaid = 0;
+    
+    // Variabel kalkulasi baru sesuai logika yang diminta
+    let tagihanMurni = 0; // Transaksi baru berjalan yang belum dicicil
+    let sisaCicilan = 0;  // Sisa hutang dari transaksi yang sudah dicicil sebagian
 
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
@@ -1539,12 +1526,15 @@ function cetakRekapKredit() {
         
         if (isLunas) return; 
 
-        // Akumulasi total keuangan tetap dilakukan
-        notaTotal += order.total;
-        notaPaid += (order.kredit_paid || 0);
+        // Aturan: Jika sudah pernah dicicil (kredit_paid > 0)
+        // maka sisa hutangnya masuk ke sisaCicilan (Sisa Tagihan) dan tidak di-render di list rincian
+        if ((order.kredit_paid || 0) > 0) {
+            sisaCicilan += sisaOrder;
+            return;
+        }
 
-        // Jangan render item ini ke list cetak jika sudah pernah dicicil (kredit_paid > 0)
-        if ((order.kredit_paid || 0) > 0) return;
+        // Jika belum pernah dicicil (Tagihan Berjalan)
+        tagihanMurni += order.total;
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         itemsArr.forEach(item => {
@@ -1565,12 +1555,15 @@ function cetakRekapKredit() {
         });
     });
 
-    const notaSisa = notaTotal - notaPaid;
+    // Total keseluruhan = Tagihan Berjalan + Sisa Cicilan
+    const grandTotal = tagihanMurni + sisaCicilan;
 
     document.getElementById('kt-items').innerHTML = itemsHTML || '<div class="text-sm text-slate-400 py-2">Semua transaksi yang belum lunas merupakan sisa cicilan.</div>';
-    document.getElementById('kt-total').innerText = formatRupiah(notaTotal);
-    document.getElementById('kt-paid').innerText = formatRupiah(notaPaid);
-    document.getElementById('kt-sisa').innerText = formatRupiah(notaSisa);
+    
+    // Inject ke DOM sesuai perubahan label di index.html
+    document.getElementById('kt-total').innerText = formatRupiah(tagihanMurni);
+    document.getElementById('kt-paid').innerText = formatRupiah(sisaCicilan);
+    document.getElementById('kt-sisa').innerText = formatRupiah(grandTotal);
 
     const modal = document.getElementById('kredit-ticket-modal');
     const modalContent = document.getElementById('kredit-ticket-modal-content');
@@ -1674,7 +1667,6 @@ function downloadKreditTicket() {
 function openKreditHistoryModal() {
     if (!currentDetailKreditName) return;
 
-    // Ambil data log pembayaran yang tersimpan di localStorage
     const allLogs = getPaymentLogs();
     const customerLogs = allLogs.filter(log => log.customer === currentDetailKreditName);
 
@@ -1685,7 +1677,6 @@ function openKreditHistoryModal() {
     let htmlContent = '';
 
     if(customerLogs.length === 0) {
-        // Jika pelanggan memiliki tagihan lunas lama namun belum ada log
         htmlContent = `<div class="text-center text-gray-400 text-xs py-8 font-bold">Belum ada riwayat pembayaran terbaru yang tercatat.</div>`;
     } else {
         htmlContent = '<div class="space-y-4">';
