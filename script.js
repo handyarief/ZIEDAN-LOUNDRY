@@ -852,19 +852,26 @@ async function hapusSemuaKreditPelanggan(customerName, event) {
     }
 }
 
-// --- RENDER ORDER LIST ---
+// --- RENDER ORDER LIST (DENGAN FILTER & TANGGAL) ---
 function renderOrderList() {
     const container = document.getElementById('order-list');
-    if (allOrders.length === 0) {
+    
+    const searchInput = document.getElementById('searchOrder');
+    const keyword = searchInput ? searchInput.value.toLowerCase() : '';
+
+    const filteredOrders = allOrders.filter(order => order.customer.toLowerCase().includes(keyword));
+
+    if (filteredOrders.length === 0) {
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center py-10 opacity-40">
                 <i class="fas fa-inbox text-4xl mb-3 text-brand-500"></i>
-                <p class="text-xs font-bold text-brand-900">Belum ada data pesanan</p>
+                <p class="text-xs font-bold text-brand-900">${keyword ? 'Pesanan tidak ditemukan' : 'Belum ada data pesanan'}</p>
             </div>
         `;
         return;
     }
-    container.innerHTML = allOrders.map((order, index) => {
+    
+    container.innerHTML = filteredOrders.map((order, index) => {
         const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
         
         itemsArray.forEach(item => {
@@ -910,6 +917,7 @@ function renderOrderList() {
                 
                 <div class="flex flex-col min-w-0">
                     <span class="text-[13px] font-extrabold text-brand-900 leading-tight truncate mb-0.5">${order.customer}</span>
+                    <span class="text-[9px] text-brand-400 font-bold mb-0.5"><i class="far fa-calendar-alt mr-1"></i> ${formatTanggalSingkat(order.date)}</span>
                     <span class="text-[10px] text-gray-500 font-semibold truncate"><i class="fas fa-tag text-gray-400 mr-1"></i>${summaryService}</span>
                 </div>
                 
@@ -1009,7 +1017,6 @@ function openOrderDetail(id) {
     refreshPaymentUI(order.payment);
     refreshStatusUI(order.status || 'proses'); 
 
-    // IMPLEMENTASI ANTI-OVERLAPPING
     hideAllViews();
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
@@ -1017,7 +1024,6 @@ function openOrderDetail(id) {
 function closeOrderDetail(fromHistory = false) {
     currentOrderId = null; 
     
-    // IMPLEMENTASI ANTI-OVERLAPPING
     hideAllViews();
     document.getElementById('view-orders').classList.remove('hidden');
     
@@ -1292,7 +1298,7 @@ function renderKreditList() {
         <div class="bg-white rounded-xl p-4 shadow-sm border border-red-100 mb-3 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
             <div class="grid grid-cols-[32px_1fr_auto_32px] gap-3 items-center">
                 
-                <div class="w-8 h-8 rounded-full bg-red-50 text-red-50 flex items-center justify-center text-xs font-black shadow-sm">
+                <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-black shadow-sm">
                     ${index + 1}
                 </div>
                 
@@ -1399,7 +1405,6 @@ function openKreditDetail(customerName, isRefresh = false) {
     window.currentTotalKredit = totalKreditAll;
     window.currentPaidKredit = totalPaidAll;
     
-    // IMPLEMENTASI ANTI-OVERLAPPING
     hideAllViews();
     document.getElementById('view-kredit-detail').classList.remove('hidden');
 
@@ -1411,7 +1416,6 @@ function openKreditDetail(customerName, isRefresh = false) {
 function closeKreditDetail(fromHistory = false) {
     currentDetailKreditName = null;
     
-    // IMPLEMENTASI ANTI-OVERLAPPING
     hideAllViews();
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
@@ -1514,6 +1518,7 @@ async function prosesBayarKredit() {
     closeModalBayarKredit();
     openKreditDetail(currentDetailKreditName, true); 
 }
+
 function cetakRekapKredit() {
     const customerOrders = allOrders.filter(o => o.customer.trim().toUpperCase() === currentDetailKreditName && o.payment === 'kredit');
     
