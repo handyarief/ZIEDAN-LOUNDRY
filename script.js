@@ -371,6 +371,22 @@ async function syncPendingOrders() {
 }
 
 // --- FUNGSI MENU & NAVIGASI UI ---
+function hideAllViews() {
+    const views = [
+        'view-home',
+        'view-orders',
+        'view-kredit',
+        'view-kredit-detail',
+        'view-order-detail',
+        'view-laporan',
+        'footer-total'
+    ];
+    views.forEach(viewId => {
+        const el = document.getElementById(viewId);
+        if (el) el.classList.add('hidden');
+    });
+}
+
 function toggleMenu() {
     const menuBtn = document.getElementById('menu-btn');
     const menuOverlay = document.getElementById('menu-overlay');
@@ -396,41 +412,28 @@ function navTo(view) {
 
 function backToHome(fromHistory = false) {
     if (!fromHistory) history.pushState({ view: 'home' }, "", "");
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-kredit').classList.add('hidden');
-    document.getElementById('view-laporan').classList.add('hidden');
-    document.getElementById('view-order-detail')?.classList.add('hidden');
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
+    hideAllViews();
     document.getElementById('view-home').classList.remove('hidden');
     document.getElementById('footer-total')?.classList.remove('hidden');
 }
 
 function switchToOrders(fromHistory = false) {
     if (!fromHistory) history.pushState({ view: 'orders' }, "", "");
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-kredit').classList.add('hidden');
-    document.getElementById('view-laporan').classList.add('hidden');
-    document.getElementById('footer-total')?.classList.add('hidden');
+    hideAllViews();
     document.getElementById('view-orders').classList.remove('hidden');
     renderOrderList();
 }
 
 function switchToKredit(fromHistory = false) {
     if (!fromHistory) history.pushState({ view: 'kredit' }, "", "");
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-laporan').classList.add('hidden');
-    document.getElementById('footer-total')?.classList.add('hidden');
+    hideAllViews();
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
 }
 
 function switchToLaporan(fromHistory = false) {
     if (!fromHistory) history.pushState({ view: 'laporan' }, "", "");
-    document.getElementById('view-home').classList.add('hidden');
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-kredit').classList.add('hidden');
-    document.getElementById('footer-total')?.classList.add('hidden');
+    hideAllViews();
     document.getElementById('view-laporan').classList.remove('hidden');
     renderLaporan();
 }
@@ -1006,16 +1009,16 @@ function openOrderDetail(id) {
     refreshPaymentUI(order.payment);
     refreshStatusUI(order.status || 'proses'); 
 
-    document.getElementById('view-orders').classList.add('hidden');
-    document.getElementById('view-kredit')?.classList.add('hidden'); 
-    document.getElementById('view-kredit-detail')?.classList.add('hidden');
-    document.getElementById('view-laporan')?.classList.add('hidden');
+    // IMPLEMENTASI ANTI-OVERLAPPING
+    hideAllViews();
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
 
 function closeOrderDetail(fromHistory = false) {
     currentOrderId = null; 
-    document.getElementById('view-order-detail').classList.add('hidden');
+    
+    // IMPLEMENTASI ANTI-OVERLAPPING
+    hideAllViews();
     document.getElementById('view-orders').classList.remove('hidden');
     
     if (!fromHistory) history.back();
@@ -1289,7 +1292,7 @@ function renderKreditList() {
         <div class="bg-white rounded-xl p-4 shadow-sm border border-red-100 mb-3 hover:bg-red-50 transition-colors relative cursor-pointer active:scale-[0.98]" onclick="openKreditDetail('${nameStr}')">
             <div class="grid grid-cols-[32px_1fr_auto_32px] gap-3 items-center">
                 
-                <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-xs font-black shadow-sm">
+                <div class="w-8 h-8 rounded-full bg-red-50 text-red-50 flex items-center justify-center text-xs font-black shadow-sm">
                     ${index + 1}
                 </div>
                 
@@ -1396,7 +1399,8 @@ function openKreditDetail(customerName, isRefresh = false) {
     window.currentTotalKredit = totalKreditAll;
     window.currentPaidKredit = totalPaidAll;
     
-    document.getElementById('view-kredit').classList.add('hidden');
+    // IMPLEMENTASI ANTI-OVERLAPPING
+    hideAllViews();
     document.getElementById('view-kredit-detail').classList.remove('hidden');
 
     if (sisaKredit <= 0) {
@@ -1406,7 +1410,9 @@ function openKreditDetail(customerName, isRefresh = false) {
 
 function closeKreditDetail(fromHistory = false) {
     currentDetailKreditName = null;
-    document.getElementById('view-kredit-detail').classList.add('hidden');
+    
+    // IMPLEMENTASI ANTI-OVERLAPPING
+    hideAllViews();
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
     
@@ -1516,9 +1522,8 @@ function cetakRekapKredit() {
     
     let itemsHTML = '';
     
-    // Variabel kalkulasi baru sesuai logika yang diminta
-    let tagihanMurni = 0; // Transaksi baru berjalan yang belum dicicil
-    let sisaCicilan = 0;  // Sisa hutang dari transaksi yang sudah dicicil sebagian
+    let tagihanMurni = 0; 
+    let sisaCicilan = 0;  
 
     customerOrders.forEach(order => {
         const sisaOrder = order.total - (order.kredit_paid || 0);
@@ -1526,14 +1531,11 @@ function cetakRekapKredit() {
         
         if (isLunas) return; 
 
-        // Aturan: Jika sudah pernah dicicil (kredit_paid > 0)
-        // maka sisa hutangnya masuk ke sisaCicilan (Sisa Tagihan) dan tidak di-render di list rincian
         if ((order.kredit_paid || 0) > 0) {
             sisaCicilan += sisaOrder;
             return;
         }
 
-        // Jika belum pernah dicicil (Tagihan Berjalan)
         tagihanMurni += order.total;
 
         const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
@@ -1555,12 +1557,10 @@ function cetakRekapKredit() {
         });
     });
 
-    // Total keseluruhan = Tagihan Berjalan + Sisa Cicilan
     const grandTotal = tagihanMurni + sisaCicilan;
 
     document.getElementById('kt-items').innerHTML = itemsHTML || '<div class="text-sm text-slate-400 py-2">Semua transaksi yang belum lunas merupakan sisa cicilan.</div>';
     
-    // Inject ke DOM sesuai perubahan label di index.html
     document.getElementById('kt-total').innerText = formatRupiah(tagihanMurni);
     document.getElementById('kt-paid').innerText = formatRupiah(sisaCicilan);
     document.getElementById('kt-sisa').innerText = formatRupiah(grandTotal);
