@@ -187,3 +187,21 @@ input[type="month"]::-webkit-calendar-picker-indicator {
     width: auto;
     z-index: 10;
 }
+
+/* Class Baru untuk Kartu Rekapitulasi Full 3D */
+.card-3d {
+    box-shadow: 
+        -4px -4px 10px rgba(255, 255, 255, 0.9),
+        4px 4px 12px rgba(99, 102, 241, 0.15),
+        inset 2px 2px 5px rgba(255, 255, 255, 0.7),
+        inset -2px -2px 5px rgba(99, 102, 241, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-3d:active {
+    box-shadow: 
+        -2px -2px 5px rgba(255, 255, 255, 0.9),
+        2px 2px 6px rgba(99, 102, 241, 0.15),
+        inset 4px 4px 8px rgba(99, 102, 241, 0.08),
+        inset -4px -4px 8px rgba(255, 255, 255, 0.7);
+    transform: scale(0.96);
+}

@@ -249,6 +249,7 @@ function saveCustomServiceConfig() {
 
     closeCustomServiceModal();
 }
+
 // --- HELPER BACA & TULIS LOKAL STORAGE ---
 function getLocalOrders() {
     try {
@@ -430,7 +431,6 @@ function switchToKredit(fromHistory = false) {
     document.getElementById('view-kredit').classList.remove('hidden');
     renderKreditList();
 }
-
 function switchToLaporan(fromHistory = false) {
     if (!fromHistory) history.pushState({ view: 'laporan' }, "", "");
     hideAllViews();
@@ -438,7 +438,7 @@ function switchToLaporan(fromHistory = false) {
     renderLaporan();
 }
 
-// --- FUNGSI LAPORAN ---
+// --- FUNGSI LAPORAN (DIMODIFIKASI: RINCIAN LAYANAN & UI 3D) ---
 function renderLaporan() {
     const inputBulan = document.getElementById('input-bulan-laporan');
     if(!inputBulan.value) {
@@ -452,8 +452,25 @@ function renderLaporan() {
     let totalQty = filteredOrders.length;
     let totalOmset = 0;
     
+    // Objek untuk menampung agregasi kuantitas layanan
+    let serviceAggregation = {};
+    
     filteredOrders.forEach(o => {
         totalOmset += o.total;
+        
+        // Ekstraksi dan agregasi data layanan dari setiap transaksi
+        const itemsArray = typeof o.items === 'string' ? JSON.parse(o.items || '[]') : (o.items || []);
+        itemsArray.forEach(item => {
+            let itemName = item.name;
+            if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
+            if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
+            if(itemName === "BC Besar") itemName = "Bed Cover Besar";
+            
+            if (!serviceAggregation[itemName]) {
+                serviceAggregation[itemName] = { qty: 0, unit: item.unit };
+            }
+            serviceAggregation[itemName].qty += Number(item.qty) || 0;
+        });
     });
     
     const summaryQty = document.getElementById('laporan-summary-qty');
@@ -461,35 +478,83 @@ function renderLaporan() {
     if(summaryQty) summaryQty.innerText = totalQty;
     if(summaryOmset) summaryOmset.innerText = formatRupiah(totalOmset);
     
+    // 1. RENDER LIST RINCIAN TRANSAKSI
     const container = document.getElementById('laporan-list');
     if(container) {
         if(totalQty === 0) {
-            container.innerHTML = '<p class="text-center text-xs text-indigo-400 py-4 font-medium">Tidak ada transaksi di bulan ini.</p>';
+            container.innerHTML = '<p class="text-center text-xs text-indigo-400 py-4 font-medium card-3d rounded-2xl bg-white/50">Tidak ada transaksi di bulan ini.</p>';
         } else {
             container.innerHTML = filteredOrders.map(order => {
+                const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+                
+                // Menyusun baris rincian layanan (setrika saja, cuci komplit, dll)
+                let detailItemsHtml = itemsArray.map(item => {
+                    let itemName = item.name;
+                    if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
+                    if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
+                    if(itemName === "BC Besar") itemName = "Bed Cover Besar";
+                    return `
+                    <div class="flex justify-between items-center text-[10px] text-indigo-600/80 mb-0.5">
+                        <span>- ${itemName}</span>
+                        <span class="font-black bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 shadow-sm">${item.qty} ${item.unit.toUpperCase()}</span>
+                    </div>`;
+                }).join('');
+
                 return `
-                <div class="flex justify-between items-center py-2.5 border-b border-indigo-50/50 last:border-0">
-                    <div class="flex flex-col">
-                        <span class="text-xs font-bold text-indigo-900">${order.customer}</span>
-                        <span class="text-[10px] font-medium text-indigo-400">${formatTanggalSingkat(order.date)} • ${order.payment.toUpperCase()}</span>
+                <div class="card-3d bg-white/80 backdrop-blur-md rounded-2xl p-3.5 mb-3 border border-white">
+                    <div class="flex justify-between items-start mb-2.5 border-b border-indigo-50/80 pb-2.5">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-black text-indigo-900 drop-shadow-sm">${order.customer}</span>
+                            <span class="text-[9px] font-bold text-indigo-400 mt-0.5 tracking-wide"><i class="fas fa-clock mr-1"></i>${formatTanggalSingkat(order.date)} • ${order.payment.toUpperCase()}</span>
+                        </div>
+                        <span class="text-xs font-black text-indigo-700 bg-gradient-to-br from-indigo-50 to-white px-2 py-1 rounded-lg border border-indigo-100 shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),0_2px_4px_rgba(99,102,241,0.1)]">${formatRupiah(order.total)}</span>
                     </div>
-                    <span class="text-xs font-extrabold text-indigo-600">${formatRupiah(order.total)}</span>
+                    <div class="pt-1">
+                        <span class="text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1.5 block"><i class="fas fa-tags mr-1"></i>Rincian Layanan:</span>
+                        ${detailItemsHtml || '<span class="text-[10px] text-gray-400 italic">Tidak ada rincian</span>'}
+                    </div>
                 </div>`;
             }).join('');
         }
     }
     
+    // 2. RENDER REKAP LAYANAN (FULL 3D)
     const serviceContainer = document.getElementById('laporan-summary-services');
     if(serviceContainer) {
+        const orderCount = totalQty;
+        const selesaiCount = filteredOrders.filter(o => o.status === 'selesai').length;
+
+        const totalOrderHtml = `
+            <div class="card-3d bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-3 border border-indigo-400/50 flex flex-col items-center justify-center text-white relative overflow-hidden">
+                <div class="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
+                <span class="text-[9px] font-black text-indigo-100 uppercase tracking-widest mb-1 drop-shadow-sm z-10 text-center">Total<br>Pesanan</span>
+                <span class="text-xl font-black drop-shadow-md z-10 leading-none">${orderCount}</span>
+            </div>`;
+        
+        const totalSelesaiHtml = `
+            <div class="card-3d bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-3 border border-purple-400/50 flex flex-col items-center justify-center text-white relative overflow-hidden">
+                <div class="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
+                <span class="text-[9px] font-black text-purple-100 uppercase tracking-widest mb-1 drop-shadow-sm z-10 text-center">Pesanan<br>Selesai</span>
+                <span class="text-xl font-black drop-shadow-md z-10 leading-none">${selesaiCount}</span>
+            </div>`;
+
+        let serviceCardsHtml = Object.keys(serviceAggregation).map(serviceName => {
+            let data = serviceAggregation[serviceName];
+            return `
+            <div class="card-3d bg-gradient-to-br from-white to-indigo-50/40 rounded-2xl p-3 border border-white flex flex-col items-center justify-center relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 w-12 h-12 bg-indigo-400/10 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+                <span class="text-[9px] font-black text-indigo-400/90 uppercase tracking-widest mb-1 text-center leading-tight drop-shadow-sm z-10">${serviceName}</span>
+                <div class="flex items-baseline gap-1 z-10 mt-0.5 bg-white/60 px-2 py-0.5 rounded-lg border border-indigo-50 shadow-sm">
+                    <span class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500 drop-shadow-sm leading-none">${data.qty}</span>
+                    <span class="text-[9px] font-extrabold text-indigo-500 uppercase tracking-wider">${data.unit}</span>
+                </div>
+            </div>`;
+        }).join('');
+
         serviceContainer.innerHTML = `
-            <div class="bg-indigo-50/80 rounded-2xl p-3 border border-indigo-100 flex flex-col items-center justify-center shadow-sm">
-                <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Total Order</span>
-                <span class="text-lg font-black text-indigo-700 leading-none">${totalQty}</span>
-            </div>
-            <div class="bg-purple-50/80 rounded-2xl p-3 border border-purple-100 flex flex-col items-center justify-center shadow-sm">
-                <span class="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-1">Selesai</span>
-                <span class="text-lg font-black text-purple-700 leading-none">${filteredOrders.filter(o => o.status === 'selesai').length}</span>
-            </div>
+            ${totalOrderHtml}
+            ${totalSelesaiHtml}
+            ${serviceCardsHtml}
         `;
     }
 }
@@ -640,7 +705,6 @@ function hitungTotal() {
     const totalEl = document.getElementById('txtTotal');
     if(totalEl) totalEl.innerText = formatRupiah(state.total);
 }
-
 // --- SIMPAN KE SUPABASE + FALLBACK LOKAL ---
 async function prosesPesanan() {
     const nama = document.getElementById('custName').value.trim();
@@ -1242,7 +1306,6 @@ function downloadETicket() {
         });
     }, 150);
 }
-
 // --- RENDER & REKAP KREDIT ---
 function renderKreditList() {
     const container = document.getElementById('kredit-list');
