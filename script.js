@@ -1,3 +1,5 @@
+// script.js — BAGIAN 1
+
 // --- DATABASE LAYANAN (LOCAL) ---
 const services = [
     { id: 0, name: "Cuci Komplit", price: 7000, unit: "kg" },
@@ -438,7 +440,7 @@ function switchToLaporan(fromHistory = false) {
     renderLaporan();
 }
 
-// --- FUNGSI LAPORAN (DIMODIFIKASI: RINCIAN LAYANAN & UI 3D) ---
+// --- FUNGSI LAPORAN (PERBAIKAN BUG FLOAT, SPASI & UI 3D MODERN) ---
 function renderLaporan() {
     const inputBulan = document.getElementById('input-bulan-laporan');
     if(!inputBulan.value) {
@@ -452,7 +454,7 @@ function renderLaporan() {
     let totalQty = filteredOrders.length;
     let totalOmset = 0;
     
-    // Objek untuk menampung agregasi kuantitas layanan
+    // Objek untuk menampung agregasi kuantitas & nilai rupiah layanan
     let serviceAggregation = {};
     
     filteredOrders.forEach(o => {
@@ -467,9 +469,15 @@ function renderLaporan() {
             if(itemName === "BC Besar") itemName = "Bed Cover Besar";
             
             if (!serviceAggregation[itemName]) {
-                serviceAggregation[itemName] = { qty: 0, unit: item.unit };
+                serviceAggregation[itemName] = { qty: 0, unit: item.unit, totalPrice: 0 };
             }
-            serviceAggregation[itemName].qty += Number(item.qty) || 0;
+            
+            // FIX: Parsing float agar tidak error saat penjumlahan decimal
+            let parsedQty = parseFloat(item.qty) || 0;
+            let parsedPrice = parseFloat(item.price) || 0;
+
+            serviceAggregation[itemName].qty += parsedQty;
+            serviceAggregation[itemName].totalPrice += (parsedQty * parsedPrice);
         });
     });
     
@@ -478,7 +486,7 @@ function renderLaporan() {
     if(summaryQty) summaryQty.innerText = totalQty;
     if(summaryOmset) summaryOmset.innerText = formatRupiah(totalOmset);
     
-    // 1. RENDER LIST RINCIAN TRANSAKSI
+    // 1. RENDER LIST RINCIAN TRANSAKSI (PERBAIKAN SPASI/PADDING)
     const container = document.getElementById('laporan-list');
     if(container) {
         if(totalQty === 0) {
@@ -487,7 +495,7 @@ function renderLaporan() {
             container.innerHTML = filteredOrders.map(order => {
                 const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
                 
-                // Menyusun baris rincian layanan (setrika saja, cuci komplit, dll)
+                // Menyusun baris rincian layanan
                 let detailItemsHtml = itemsArray.map(item => {
                     let itemName = item.name;
                     if(itemName === "BC Kecil") itemName = "Bed Cover Kecil";
@@ -500,17 +508,18 @@ function renderLaporan() {
                     </div>`;
                 }).join('');
 
+                // Menyesuaikan margin (mb-2, pb-1.5) dan padding (p-2.5, pt-0.5) agar lebih rapat
                 return `
-                <div class="card-3d bg-white/80 backdrop-blur-md rounded-2xl p-3.5 mb-3 border border-white">
-                    <div class="flex justify-between items-start mb-2.5 border-b border-indigo-50/80 pb-2.5">
+                <div class="card-3d bg-white/80 backdrop-blur-md rounded-xl p-2.5 mb-2 border border-white">
+                    <div class="flex justify-between items-start mb-1.5 border-b border-indigo-50/80 pb-1.5">
                         <div class="flex flex-col">
                             <span class="text-xs font-black text-indigo-900 drop-shadow-sm">${order.customer}</span>
                             <span class="text-[9px] font-bold text-indigo-400 mt-0.5 tracking-wide"><i class="fas fa-clock mr-1"></i>${formatTanggalSingkat(order.date)} • ${order.payment.toUpperCase()}</span>
                         </div>
                         <span class="text-xs font-black text-indigo-700 bg-gradient-to-br from-indigo-50 to-white px-2 py-1 rounded-lg border border-indigo-100 shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),0_2px_4px_rgba(99,102,241,0.1)]">${formatRupiah(order.total)}</span>
                     </div>
-                    <div class="pt-1">
-                        <span class="text-[9px] font-black text-indigo-300 uppercase tracking-widest mb-1.5 block"><i class="fas fa-tags mr-1"></i>Rincian Layanan:</span>
+                    <div class="pt-0.5">
+                        <span class="text-[8px] font-black text-indigo-300 uppercase tracking-widest mb-1 block"><i class="fas fa-tags mr-1"></i>Rincian Layanan:</span>
                         ${detailItemsHtml || '<span class="text-[10px] text-gray-400 italic">Tidak ada rincian</span>'}
                     </div>
                 </div>`;
@@ -518,46 +527,37 @@ function renderLaporan() {
         }
     }
     
-    // 2. RENDER REKAP LAYANAN (FULL 3D)
+    // 2. RENDER REKAP LAYANAN (FULL 3D - TANPA TOTAL PESANAN & DENGAN NOMINAL RUPIAH)
     const serviceContainer = document.getElementById('laporan-summary-services');
     if(serviceContainer) {
-        const orderCount = totalQty;
-        const selesaiCount = filteredOrders.filter(o => o.status === 'selesai').length;
-
-        const totalOrderHtml = `
-            <div class="card-3d bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-3 border border-indigo-400/50 flex flex-col items-center justify-center text-white relative overflow-hidden">
-                <div class="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
-                <span class="text-[9px] font-black text-indigo-100 uppercase tracking-widest mb-1 drop-shadow-sm z-10 text-center">Total<br>Pesanan</span>
-                <span class="text-xl font-black drop-shadow-md z-10 leading-none">${orderCount}</span>
-            </div>`;
-        
-        const totalSelesaiHtml = `
-            <div class="card-3d bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-3 border border-purple-400/50 flex flex-col items-center justify-center text-white relative overflow-hidden">
-                <div class="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity"></div>
-                <span class="text-[9px] font-black text-purple-100 uppercase tracking-widest mb-1 drop-shadow-sm z-10 text-center">Pesanan<br>Selesai</span>
-                <span class="text-xl font-black drop-shadow-md z-10 leading-none">${selesaiCount}</span>
-            </div>`;
-
         let serviceCardsHtml = Object.keys(serviceAggregation).map(serviceName => {
             let data = serviceAggregation[serviceName];
+            
+            // Membulatkan hasil float agar menghindari angka tak beraturan (misal 1.50000000002)
+            let displayQty = Math.round(data.qty * 100) / 100;
+            
             return `
             <div class="card-3d bg-gradient-to-br from-white to-indigo-50/40 rounded-2xl p-3 border border-white flex flex-col items-center justify-center relative overflow-hidden group">
                 <div class="absolute -right-4 -top-4 w-12 h-12 bg-indigo-400/10 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
-                <span class="text-[9px] font-black text-indigo-400/90 uppercase tracking-widest mb-1 text-center leading-tight drop-shadow-sm z-10">${serviceName}</span>
-                <div class="flex items-baseline gap-1 z-10 mt-0.5 bg-white/60 px-2 py-0.5 rounded-lg border border-indigo-50 shadow-sm">
-                    <span class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500 drop-shadow-sm leading-none">${data.qty}</span>
+                
+                <span class="text-[10px] font-black text-indigo-500/90 uppercase tracking-widest mb-1 text-center leading-tight drop-shadow-sm z-10">${serviceName}</span>
+                
+                <div class="flex items-baseline gap-1 z-10 mt-0.5 bg-white/80 px-2 py-0.5 rounded-lg border border-indigo-100 shadow-sm mb-1.5">
+                    <span class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500 drop-shadow-sm leading-none">${displayQty}</span>
                     <span class="text-[9px] font-extrabold text-indigo-500 uppercase tracking-wider">${data.unit}</span>
+                </div>
+                
+                <div class="z-10 bg-gradient-to-r from-indigo-500 to-cyan-500 px-2.5 py-1 rounded-full shadow-[0_2px_5px_rgba(99,102,241,0.25)] border border-indigo-400/30">
+                    <span class="text-[9px] font-black text-white tracking-widest drop-shadow-md">${formatRupiah(data.totalPrice)}</span>
                 </div>
             </div>`;
         }).join('');
 
-        serviceContainer.innerHTML = `
-            ${totalOrderHtml}
-            ${totalSelesaiHtml}
-            ${serviceCardsHtml}
-        `;
+        // Hanya me-render rincian jenis layanan (menghilangkan card Total Pesanan dan Pesanan Selesai)
+        serviceContainer.innerHTML = serviceCardsHtml;
     }
 }
+// script.js — BAGIAN 2
 
 // --- FUNGSI UTAMA & INISIALISASI ---
 function initApp() {
@@ -998,6 +998,8 @@ function renderOrderList() {
         `;
     }).join('');
 }
+// script.js — BAGIAN 3
+
 // --- RINCIAN PESANAN & NOTA BAYAR ---
 function openOrderDetail(id) {
     history.pushState({ view: 'order-detail' }, "", "");
