@@ -437,7 +437,6 @@ function switchToLaporan(fromHistory = false) {
     document.getElementById('view-laporan').classList.remove('hidden');
     renderLaporan();
 }
-
 // --- FUNGSI LAPORAN ---
 function renderLaporan() {
     const inputBulan = document.getElementById('input-bulan-laporan');
@@ -1052,15 +1051,15 @@ function openOrderDetail(id) {
 
             const subtotal = item.qty * (item.price || 0);
 
-            // REVISI UX: Mengurangi ukuran teks, margin, menghapus kotak badge kuantitas di sebelah kanan agar lebih padat
+            // MENGUBAH ukuran font dan padding agar list nota terasa lebih luas/besar secara vertikal
             return `
-            <div class="flex flex-col text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${itemName}</span>
-                    <span class="font-bold text-cyan-300 text-sm">${formatRupiah(subtotal)}</span>
+            <div class="flex flex-col text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
+                <div class="flex justify-between items-start mb-1.5">
+                    <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName}</span>
+                    <span class="font-bold text-cyan-300 text-base">${formatRupiah(subtotal)}</span>
                 </div>
-                <div class="flex justify-between items-center mt-0.5">
-                    <span class="text-[10px] text-cyan-500/80 font-mono">${item.qty} ${item.unit.toUpperCase()} x ${formatRupiah(item.price || 0)}</span>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-cyan-500/80 font-mono">${item.qty} ${item.unit.toUpperCase()} x ${formatRupiah(item.price || 0)}</span>
                 </div>
             </div>
             `;
@@ -1073,7 +1072,6 @@ function openOrderDetail(id) {
     hideAllViews();
     document.getElementById('view-order-detail').classList.remove('hidden');
 }
-
 function closeOrderDetail(fromHistory = false) {
     currentOrderId = null; 
     
@@ -1126,15 +1124,13 @@ function refreshPaymentUI(paymentStatus) {
     if (paymentStatus === 'cash') {
         const classLunas = "text-[10px] bg-green-50 text-green-600 px-2.5 py-1 rounded-lg border border-green-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "CASH"; badgeDetail.className = classLunas; }
-        // Update styling class sesuai dengan HTML yg baru diperkecil
-        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[9px] bg-emerald-950/50 text-emerald-400 px-2.5 py-1 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[70px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
+        if (badgeTicket) { badgeTicket.innerText = "CASH"; badgeTicket.className = "text-[10px] bg-emerald-950/50 text-emerald-400 px-3 py-1.5 rounded border border-emerald-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(16,185,129,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassActive + disabledStateClass + "border-green-500 bg-green-500 text-white";
         btnKredit.className = baseBtnClassInactive + disabledStateClass;
     } else {
         const classKredit = "text-[10px] bg-red-50 text-red-600 px-2.5 py-1 rounded-lg border border-red-100 font-bold uppercase tracking-wider shadow-sm inline-block";
         if (badgeDetail) { badgeDetail.innerText = "KREDIT"; badgeDetail.className = classKredit; }
-        // Update styling class sesuai dengan HTML yg baru diperkecil
-        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[9px] bg-rose-950/50 text-rose-400 px-2.5 py-1 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[70px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
+        if (badgeTicket) { badgeTicket.innerText = "KREDIT"; badgeTicket.className = "text-[10px] bg-rose-950/50 text-rose-400 px-3 py-1.5 rounded border border-rose-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(244,63,94,0.1)] backdrop-blur-sm"; }
         btnCash.className = baseBtnClassInactive + disabledStateClass;
         btnKredit.className = baseBtnClassActive + disabledStateClass + "border-red-500 bg-red-500 text-white";
     }
@@ -1175,21 +1171,21 @@ function refreshStatusUI(status) {
         btnSelesai.className = classInactive;
         if(ticketBadge) {
             ticketBadge.innerText = "PROSES";
-            ticketBadge.className = "text-[9px] bg-blue-950/50 text-blue-400 px-2.5 py-1 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[70px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-[10px] bg-blue-950/50 text-blue-400 px-3 py-1.5 rounded border border-blue-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
         }
     } else if (status === 'selesai') {
         btnProses.className = classInactive;
         btnSelesai.className = "flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-green-500 bg-green-500 text-white font-bold text-xs transition-all active:scale-95 shadow-md";
         if(ticketBadge) {
             ticketBadge.innerText = "SELESAI";
-            ticketBadge.className = "text-[9px] bg-cyan-950/50 text-cyan-400 px-2.5 py-1 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[70px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-[10px] bg-cyan-950/50 text-cyan-400 px-3 py-1.5 rounded border border-cyan-500/30 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(34,211,238,0.1)] backdrop-blur-sm";
         }
     } else {
         btnProses.className = classInactive;
         btnSelesai.className = classInactive;
         if(ticketBadge) {
             ticketBadge.innerText = "BARU";
-            ticketBadge.className = "text-[9px] bg-slate-800/80 text-slate-300 px-2.5 py-1 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[70px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
+            ticketBadge.className = "text-[10px] bg-slate-800/80 text-slate-300 px-3 py-1.5 rounded border border-slate-600/50 font-black uppercase tracking-widest text-center min-w-[75px] shadow-[0_0_10px_rgba(148,163,184,0.1)] backdrop-blur-sm";
         }
     }
 }
@@ -1240,7 +1236,6 @@ function downloadETicket() {
     clone.style.maxHeight = 'none';
     clone.style.overflow = 'visible';
     clone.classList.remove('overflow-y-auto');
-    // Padding export disesuaikan
     clone.style.padding = '24px 16px'; 
 
     const blurElements = clone.querySelectorAll('.blur-xl');
@@ -1605,14 +1600,14 @@ function cetakRekapKredit() {
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
             if(itemName === "BC Besar") itemName = "Bed Cover Besar";
 
-            // REVISI UX: Mengurangi ukuran font dan padding agar rekap kredit lebih rapi & padat
+            // MENYESUAIKAN padding dan ukuran teks agar sama besarnya dengan nota cash
             itemsHTML += `
-            <div class="flex justify-between items-center text-xs text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-2">
+            <div class="flex justify-between items-center text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
                 <div class="flex flex-col">
-                    <span class="font-bold text-cyan-50 tracking-wide text-sm">${itemName} <span class="text-cyan-500/80 font-mono text-[10px]">(${item.qty}${item.unit.toUpperCase()})</span></span>
-                    <span class="text-[10px] text-slate-500 font-mono mt-0.5">${formatTanggalSingkat(order.date)}</span>
+                    <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span></span>
+                    <span class="text-xs text-slate-500 font-mono mt-1">${formatTanggalSingkat(order.date)}</span>
                 </div>
-                <span class="font-mono font-black text-cyan-300 whitespace-nowrap text-sm">${formatRupiah(item.qty * (item.price || 0))}</span>
+                <span class="font-mono font-black text-cyan-300 whitespace-nowrap text-base">${formatRupiah(item.qty * (item.price || 0))}</span>
             </div>
             `;
         });
@@ -1620,7 +1615,7 @@ function cetakRekapKredit() {
 
     const grandTotal = tagihanMurni + sisaCicilan;
 
-    document.getElementById('kt-items').innerHTML = itemsHTML || '<div class="text-xs text-slate-400 py-2">Semua transaksi yang belum lunas merupakan sisa cicilan.</div>';
+    document.getElementById('kt-items').innerHTML = itemsHTML || '<div class="text-sm text-slate-400 py-3">Semua transaksi yang belum lunas merupakan sisa cicilan.</div>';
     
     document.getElementById('kt-total').innerText = formatRupiah(tagihanMurni);
     document.getElementById('kt-paid').innerText = formatRupiah(sisaCicilan);
@@ -1671,7 +1666,6 @@ function downloadKreditTicket() {
     clone.style.maxHeight = 'none';
     clone.style.overflow = 'visible';
     clone.classList.remove('overflow-y-auto');
-    // Padding export disesuaikan
     clone.style.padding = '24px 16px'; 
 
     const blurElements = clone.querySelectorAll('.blur-xl');
