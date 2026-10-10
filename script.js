@@ -424,7 +424,6 @@ function switchToOrders(fromHistory = false) {
     document.getElementById('view-orders').classList.remove('hidden');
     renderOrderList();
 }
-
 function switchToKredit(fromHistory = false) {
     if (!fromHistory) history.pushState({ view: 'kredit' }, "", "");
     hideAllViews();
@@ -1051,10 +1050,10 @@ function openOrderDetail(id) {
 
             const subtotal = item.qty * (item.price || 0);
 
-            // MENGUBAH ukuran font dan padding agar list nota terasa lebih luas/besar secara vertikal
+            // REVISI: Mengubah py-3 menjadi py-1.5 dan mb-1.5 menjadi mb-1 agar list lebih rapat
             return `
-            <div class="flex flex-col text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
-                <div class="flex justify-between items-start mb-1.5">
+            <div class="flex flex-col text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-1.5">
+                <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName}</span>
                     <span class="font-bold text-cyan-300 text-base">${formatRupiah(subtotal)}</span>
                 </div>
@@ -1600,9 +1599,9 @@ function cetakRekapKredit() {
             if(itemName === "BC Sedang") itemName = "Bed Cover Sedang";
             if(itemName === "BC Besar") itemName = "Bed Cover Besar";
 
-            // MENYESUAIKAN padding dan ukuran teks agar sama besarnya dengan nota cash
+            // REVISI: Mengubah py-3 menjadi py-1.5 agar list lebih rapat (Compact)
             itemsHTML += `
-            <div class="flex justify-between items-center text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-3">
+            <div class="flex justify-between items-center text-sm text-slate-300 border-b border-dashed border-slate-700/50 last:border-0 py-1.5">
                 <div class="flex flex-col">
                     <span class="font-bold text-cyan-50 tracking-wide text-base">${itemName} <span class="text-cyan-500/80 font-mono text-xs">(${item.qty}${item.unit.toUpperCase()})</span></span>
                     <span class="text-xs text-slate-500 font-mono mt-1">${formatTanggalSingkat(order.date)}</span>
@@ -1631,7 +1630,6 @@ function cetakRekapKredit() {
         modalContent.classList.add('scale-100');
     }, 10);
 }
-
 function closeKreditTicketModal() {
     const modal = document.getElementById('kredit-ticket-modal');
     const modalContent = document.getElementById('kredit-ticket-modal-content');
